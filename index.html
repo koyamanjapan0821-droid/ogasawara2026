@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f7fbff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="小笠原2026">
+  <title>小笠原2026</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/icon-192.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <header class="hero glass">
+      <div class="hero-top">
+        <div>
+          <p class="eyebrow">Ogasawara Trip Planner</p>
+          <h1>小笠原2026</h1>
+          <p class="subtitle">ともき & ぽんちゃんの父島しおり</p>
+        </div>
+        <button id="installBtn" class="pill hidden">ホームに追加</button>
+      </div>
+      <div class="hero-grid">
+        <div class="metric"><span id="countdown">--</span><small>出発まで</small></div>
+        <div class="metric"><span>8/11-16</span><small>2026</small></div>
+        <div class="metric"><span id="visitRate">0/0</span><small>訪問済</small></div>
+      </div>
+    </header>
+
+    <main>
+      <section id="home" class="screen active">
+        <div class="section-title"><h2>Today</h2><span>今日の予定と天気</span></div>
+        <article class="card weather-card">
+          <div>
+            <p class="label">父島の天気</p>
+            <h3 id="weatherNow">読み込み中…</h3>
+            <p id="weatherMeta" class="muted">Open-Meteoから取得します</p>
+          </div>
+          <div class="weather-icon" id="weatherIcon">☀️</div>
+        </article>
+        <article class="card">
+          <p class="label">直近の予定</p>
+          <div id="nextPlan" class="timeline compact"></div>
+        </article>
+        <div class="quick-grid">
+          <button class="quick" data-jump="itinerary">📅<span>旅程</span></button>
+          <button class="quick" data-jump="spots">📍<span>スポット</span></button>
+          <button class="quick" data-jump="checklist">☑️<span>持ち物</span></button>
+          <button class="quick" data-jump="memo">📝<span>メモ</span></button>
+        </div>
+      </section>
+
+      <section id="itinerary" class="screen">
+        <div class="section-title"><h2>Itinerary</h2><span>日別タイムライン</span></div>
+        <div id="itineraryList"></div>
+      </section>
+
+      <section id="spots" class="screen">
+        <div class="section-title"><h2>Spots</h2><span>行きたい所・追加スポット</span></div>
+        <div class="toolbar">
+          <input id="spotSearch" type="search" placeholder="スポット検索">
+          <select id="spotFilter"><option value="all">すべて</option><option value="view">展望台</option><option value="beach">海岸</option><option value="shop">買い物</option><option value="base">拠点</option><option value="nature">自然</option><option value="custom">追加分</option></select>
+        </div>
+        <div id="spotList" class="spot-list"></div>
+        <button id="addSpotBtn" class="fab">＋</button>
+      </section>
+
+      <section id="checklist" class="screen">
+        <div class="section-title"><h2>Checklist</h2><span>持ってくもの</span></div>
+        <div id="checklistItems" class="checklist"></div>
+        <button id="resetChecklist" class="secondary full">チェックをリセット</button>
+      </section>
+
+      <section id="reservations" class="screen">
+        <div class="section-title"><h2>Reservations</h2><span>予約・連絡先・費用メモ</span></div>
+        <div id="reservationList"></div>
+      </section>
+
+      <section id="memo" class="screen">
+        <div class="section-title"><h2>Travel Log</h2><span>旅行中のメモ</span></div>
+        <article class="card">
+          <label class="label" for="memoDate">日付</label>
+          <input id="memoDate" type="date" value="2026-08-11">
+          <label class="label" for="memoText">メモ</label>
+          <textarea id="memoText" rows="5" placeholder="例：ヤシガニ発見。ぽんちゃん大興奮。"></textarea>
+          <button id="saveMemo" class="primary full">保存</button>
+        </article>
+        <div id="memoList"></div>
+      </section>
+    </main>
+
+    <nav class="tabbar glass">
+      <button data-tab="home" class="active">🏝️<span>Home</span></button>
+      <button data-tab="itinerary">📅<span>旅程</span></button>
+      <button data-tab="spots">📍<span>場所</span></button>
+      <button data-tab="checklist">☑️<span>持物</span></button>
+      <button data-tab="reservations">🚢<span>予約</span></button>
+      <button data-tab="memo">📝<span>メモ</span></button>
+    </nav>
+  </div>
+
+  <dialog id="spotDialog">
+    <form method="dialog" id="spotForm" class="dialog-card">
+      <h3>スポット追加</h3>
+      <input id="newSpotName" placeholder="名称" required>
+      <input id="newSpotUrl" placeholder="Google Maps URL（任意）">
+      <textarea id="newSpotMemo" placeholder="メモ" rows="4"></textarea>
+      <div class="dialog-actions"><button value="cancel" class="secondary">キャンセル</button><button value="default" class="primary">追加</button></div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
