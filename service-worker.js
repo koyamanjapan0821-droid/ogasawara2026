@@ -1,5 +1,5 @@
-const CACHE_NAME = 'ogasawara2026-v1';
-const ASSETS = ['./','./index.html','./style.css','./app.js','./manifest.json'];
+const CACHE_NAME = 'ogasawara2026-v2';
+const ASSETS = ['./','./index.html','./style.css','./app.js','./manifest.json','./README.md'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)).then(()=>self.skipWaiting()));
 });

@@ -7,5 +7,6 @@
   "display": "standalone",
   "background_color": "#f7fbff",
   "theme_color": "#f7fbff",
-  "lang": "ja"
+  "lang": "ja",
+  "icons": [{"src":"assets/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
 }

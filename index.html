@@ -48,6 +48,7 @@
         <div class="quick-grid">
           <button class="quick" data-jump="itinerary">📅<span>旅程</span></button>
           <button class="quick" data-jump="spots">📍<span>場所</span></button>
+          <button class="quick" data-jump="birds">🐦<span>探鳥</span></button>
           <button class="quick" data-jump="checklist">☑️<span>持物</span></button>
           <button class="quick" data-jump="memo">📝<span>記録</span></button>
         </div>
@@ -63,11 +64,23 @@
         <div class="toolbar">
           <input id="spotSearch" type="search" placeholder="スポット検索">
           <select id="spotFilter">
-            <option value="all">すべて</option><option value="view">展望台</option><option value="beach">海岸</option><option value="shop">買い物</option><option value="base">拠点</option><option value="nature">自然</option><option value="custom">追加</option>
+            <option value="all">すべて</option><option value="view">展望台</option><option value="beach">海岸</option><option value="shop">買い物</option><option value="base">拠点</option><option value="nature">自然</option><option value="custom">追加</option><option value="favorite">お気に入り</option>
           </select>
         </div>
         <div id="spotList" class="spot-list"></div>
         <button id="addSpotBtn" class="fab" aria-label="スポット追加">＋</button>
+      </section>
+
+      <section id="birds" class="screen">
+        <div class="section-title"><h2>Birds</h2><span>小笠原で見たい鳥チェック</span></div>
+        <div class="toolbar bird-toolbar">
+          <input id="birdSearch" type="search" placeholder="鳥名・場所・識別ポイントで検索">
+          <select id="birdFilter">
+            <option value="all">すべて</option><option value="land">陸鳥</option><option value="sea">海鳥</option><option value="shore">海岸・渡り</option><option value="rare">固有・希少</option>
+          </select>
+        </div>
+        <div id="birdProgress" class="progress-card"></div>
+        <div id="birdList" class="bird-list"></div>
       </section>
 
       <section id="checklist" class="screen">
@@ -101,6 +114,7 @@
       <button data-tab="home" class="active">🏝️<span>Home</span></button>
       <button data-tab="itinerary">📅<span>旅程</span></button>
       <button data-tab="spots">📍<span>場所</span></button>
+      <button data-tab="birds">🐦<span>探鳥</span></button>
       <button data-tab="checklist">☑️<span>持物</span></button>
       <button data-tab="reservations">🚢<span>予約</span></button>
       <button data-tab="memo">📝<span>記録</span></button>
@@ -117,6 +131,12 @@
       <div class="dialog-actions"><button value="cancel" class="secondary">キャンセル</button><button value="default" class="primary">追加</button></div>
     </form>
   </dialog>
+
+  <div id="mascotLayer" aria-hidden="false">
+    <div id="mascotBubble" class="mascot-bubble hidden"></div>
+    <button id="mascotTomokichi" class="mascot mascot-tomokichi" type="button" aria-label="ともきちキャラ"></button>
+    <button id="mascotPonchan" class="mascot mascot-ponchan" type="button" aria-label="ぽんちゃんキャラ"></button>
+  </div>
 
   <script src="app.js"></script>
 </body>
