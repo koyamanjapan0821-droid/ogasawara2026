@@ -81,6 +81,7 @@
         </div>
         <div id="birdProgress" class="progress-card"></div>
         <div id="birdList" class="bird-list"></div>
+        <button id="addBirdBtn" class="fab bird-fab" aria-label="鳥を追加">🐦＋</button>
       </section>
 
       <section id="checklist" class="screen">
@@ -129,6 +130,27 @@
       <input id="newSpotUrl" placeholder="Google Maps URL（任意）">
       <textarea id="newSpotMemo" placeholder="メモ" rows="4"></textarea>
       <div class="dialog-actions"><button id="cancelSpotBtn" type="button" class="secondary">キャンセル</button><button type="submit" class="primary">追加</button></div>
+    </form>
+  </dialog>
+
+
+  <dialog id="birdDialog">
+    <form method="dialog" id="birdForm" class="dialog-card">
+      <h3>鳥を追加</h3>
+      <input id="newBirdName" placeholder="鳥の名前" required>
+      <select id="newBirdType">
+        <option value="land">陸鳥</option>
+        <option value="sea">海鳥</option>
+        <option value="shore">海岸・渡り</option>
+        <option value="rare land">固有・希少</option>
+      </select>
+      <input id="newBirdDifficulty" placeholder="難易度（任意）">
+      <input id="newBirdPlace" placeholder="観察場所（任意）">
+      <textarea id="newBirdPoint" placeholder="識別メモ（任意）" rows="3"></textarea>
+      <textarea id="newBirdMemo" placeholder="メモ（任意）" rows="3"></textarea>
+      <label class="label" for="newBirdPhoto">写真（任意・カメラロールから選択）</label>
+      <input id="newBirdPhoto" type="file" accept="image/*">
+      <div class="dialog-actions"><button id="cancelBirdBtn" type="button" class="secondary">キャンセル</button><button type="submit" class="primary">追加</button></div>
     </form>
   </dialog>
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ogasawara2026-v5-1-rare-kohtaro';
+const CACHE_NAME = 'ogasawara2026-v7-bird-add-photo';
 const ASSETS = [
   './',
   './index.html',

@@ -82,7 +82,7 @@ const APP = {
 };
 const $ = id => document.getElementById(id);
 const store = {get:(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d)), set:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
-let customSpots = store.get('customSpots', []), visited = store.get('visited', {}), favorites = store.get('favorites', {}), checks = store.get('checks', {}), birdChecks = store.get('birdChecks', {}), memos = store.get('memos', []);
+let customSpots = store.get('customSpots', []), visited = store.get('visited', {}), favorites = store.get('favorites', {}), checks = store.get('checks', {}), birdChecks = store.get('birdChecks', {}), memos = store.get('memos', []), customBirds = store.get('customBirds', []), birdUserPhotos = store.get('birdUserPhotos', {});
 function switchTab(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===id));document.querySelectorAll('.tabbar button').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));scrollTo({top:0,behavior:'smooth'});}
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));document.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>switchTab(b.dataset.jump));
 function updateCountdown(){const now=new Date();const diff=APP.startDate-now;if(diff<=0){$('countdown').textContent='出発済';return}const d=Math.ceil(diff/86400000);$('countdown').textContent=`あと${d}日`;}
@@ -94,10 +94,30 @@ function labelCat(c){return {view:'展望台',beach:'海岸',shop:'買い物',ba
 $('spotSearch').oninput=renderSpots;$('spotFilter').onchange=renderSpots;$('addSpotBtn').onclick=()=>$('spotDialog').showModal();$('cancelSpotBtn').onclick=()=>{$('spotForm').reset();$('spotDialog').close();};$('spotForm').onsubmit=(e)=>{e.preventDefault();const name=$('newSpotName').value.trim();if(!name)return;const s={id:'c'+Date.now(),name,category:$('newSpotCategory').value,memo:$('newSpotMemo').value.trim(),url:$('newSpotUrl').value.trim()};customSpots.push(s);store.set('customSpots',customSpots);$('spotForm').reset();$('spotDialog').close();renderSpots();renderVisitRate();};
 function renderVisitRate(){const total=APP.spots.length+customSpots.length;const done=Object.entries(visited).filter(([id,v])=>v && ([...APP.spots,...customSpots].some(s=>s.id===id))).length;$('visitRate').textContent=`${done}/${total}`;}
 
-function renderBirds(){const q=$('birdSearch').value.toLowerCase();const f=$('birdFilter').value;const list=APP.birds.filter(b=>(f==='all'||b.type.includes(f))&&(`${b.name} ${b.points} ${b.places} ${b.voice} ${b.memo}`.toLowerCase().includes(q)));$('birdList').innerHTML=list.map(b=>`<article class="card bird-card"><div class="bird-head"><div><p class="label">${birdTypeLabel(b.type)}</p><h3>${escapeHtml(b.name)}</h3><p class="muted">難易度：${escapeHtml(b.difficulty)}｜観察場所：${escapeHtml(b.places)}</p></div><button class="bird-check ${birdChecks[b.id]?'done':''}" data-bird="${b.id}">${birdChecks[b.id]?'観察済':'未観察'}</button></div><div class="bird-photos">${b.photos.map((p,i)=>`<img src="${p}" alt="${escapeHtml(b.name)} 写真${i+1}" loading="lazy" onerror="this.classList.add('photo-missing');this.alt='写真取得不可';">`).join('')}</div><div class="bird-info"><p><b>識別ポイント</b><br>${escapeHtml(b.points)}</p><p><b>鳴き声</b><br>${escapeHtml(b.voice)}</p><p><b>メモ</b><br>${escapeHtml(b.memo)}</p></div></article>`).join('')||'<p class="muted">該当する鳥はいません。</p>';document.querySelectorAll('[data-bird]').forEach(b=>b.onclick=()=>{birdChecks[b.dataset.bird]=!birdChecks[b.dataset.bird];store.set('birdChecks',birdChecks);renderBirds();renderBirdProgress();});renderBirdProgress();}
+function allBirds(){return [...APP.birds,...customBirds];}
+function renderBirds(){
+  const q=$('birdSearch').value.toLowerCase();
+  const f=$('birdFilter').value;
+  const list=allBirds().filter(b=>(f==='all'||b.type.includes(f))&&(`${b.name} ${b.points||''} ${b.places||''} ${b.voice||''} ${b.memo||''}`.toLowerCase().includes(q)));
+  $('birdList').innerHTML=list.map(b=>{
+    const ownPhotos=birdUserPhotos[b.id]||[];
+    const officialPhotos=(b.photos||[]);
+    const photoHtml=[...officialPhotos.map((p,i)=>`<img src="${p}" alt="${escapeHtml(b.name)} 写真${i+1}" loading="lazy" onerror="this.classList.add('photo-missing');this.alt='写真取得不可';">`),...ownPhotos.map((p,i)=>`<div class="bird-user-photo"><img src="${p}" alt="${escapeHtml(b.name)} 追加写真${i+1}" loading="lazy"><button class="photo-delete" data-delbirdphoto="${b.id}" data-photoindex="${i}" type="button">×</button></div>`)].join('');
+    const isCustom=String(b.id).startsWith('cb');
+    return `<article class="card bird-card"><div class="bird-head"><div><p class="label">${birdTypeLabel(b.type)}${isCustom?' / 追加':''}</p><h3>${escapeHtml(b.name)}</h3><p class="muted">難易度：${escapeHtml(b.difficulty||'未設定')}｜観察場所：${escapeHtml(b.places||'未設定')}</p></div><button class="bird-check ${birdChecks[b.id]?'done':''}" data-bird="${b.id}">${birdChecks[b.id]?'観察済':'未観察'}</button></div><div class="bird-photos">${photoHtml||'<p class="muted">写真なし</p>'}</div><div class="bird-actions"><label class="link-btn file-label">📷 写真追加<input type="file" accept="image/*" data-birdphoto="${b.id}" hidden></label>${isCustom?`<button class="danger" data-delbird="${b.id}" type="button">鳥を削除</button>`:''}</div><div class="bird-info"><p><b>識別ポイント</b><br>${escapeHtml(b.points||'')}</p>${b.memo?`<p><b>メモ</b><br>${escapeHtml(b.memo)}</p>`:''}</div></article>`;
+  }).join('')||'<p class="muted">該当する鳥はいません。</p>';
+  document.querySelectorAll('[data-bird]').forEach(b=>b.onclick=()=>{birdChecks[b.dataset.bird]=!birdChecks[b.dataset.bird];store.set('birdChecks',birdChecks);renderBirds();renderBirdProgress();});
+  document.querySelectorAll('[data-birdphoto]').forEach(input=>input.onchange=async()=>{const file=input.files[0];if(!file)return;const id=input.dataset.birdphoto;const photo=await compressImage(file);birdUserPhotos[id]=birdUserPhotos[id]||[];birdUserPhotos[id].push(photo);try{store.set('birdUserPhotos',birdUserPhotos)}catch(e){birdUserPhotos[id].pop();alert('写真容量が大きすぎて保存できませんでした。枚数を減らすか小さい画像で試してください。');}renderBirds();});
+  document.querySelectorAll('[data-delbirdphoto]').forEach(btn=>btn.onclick=()=>{const id=btn.dataset.delbirdphoto;const idx=Number(btn.dataset.photoindex);if(!birdUserPhotos[id])return;birdUserPhotos[id].splice(idx,1);store.set('birdUserPhotos',birdUserPhotos);renderBirds();});
+  document.querySelectorAll('[data-delbird]').forEach(btn=>btn.onclick=()=>{if(!confirm('追加した鳥を削除しますか？'))return;const id=btn.dataset.delbird;customBirds=customBirds.filter(b=>b.id!==id);delete birdChecks[id];delete birdUserPhotos[id];store.set('customBirds',customBirds);store.set('birdChecks',birdChecks);store.set('birdUserPhotos',birdUserPhotos);renderBirds();renderBirdProgress();});
+  renderBirdProgress();
+}
 function birdTypeLabel(t){const a=[];if(t.includes('rare'))a.push('固有・希少');if(t.includes('land'))a.push('陸鳥');if(t.includes('sea'))a.push('海鳥');if(t.includes('shore'))a.push('海岸・渡り');return a.join(' / ')}
-function renderBirdProgress(){const total=APP.birds.length;const done=Object.values(birdChecks).filter(Boolean).length;const pct=total?Math.round(done/total*100):0;$('birdProgress').innerHTML=`<b>探鳥 ${done}/${total}</b><div class="bar"><i style="width:${pct}%"></i></div><p class="muted">${pct}% 観察済。鳥おったらタップや！</p>`;}
+function renderBirdProgress(){const birds=allBirds();const total=birds.length;const done=birds.filter(b=>birdChecks[b.id]).length;const pct=total?Math.round(done/total*100):0;$('birdProgress').innerHTML=`<b>探鳥 ${done}/${total}</b><div class="bar"><i style="width:${pct}%"></i></div><p class="muted">${pct}% 観察済。鳥おったらタップや！</p>`;}
 $('birdSearch').oninput=renderBirds;$('birdFilter').onchange=renderBirds;
+$('addBirdBtn').onclick=()=>$('birdDialog').showModal();
+$('cancelBirdBtn').onclick=()=>{$('birdForm').reset();$('birdDialog').close();};
+$('birdForm').onsubmit=async(e)=>{e.preventDefault();const name=$('newBirdName').value.trim();if(!name)return;const id='cb'+Date.now();let photos=[];const file=$('newBirdPhoto').files[0];if(file)photos=[await compressImage(file)];const b={id,name,type:$('newBirdType').value,difficulty:$('newBirdDifficulty').value.trim()||'未設定',places:$('newBirdPlace').value.trim()||'未設定',points:$('newBirdPoint').value.trim()||'旅行中に追加した鳥',voice:'',memo:$('newBirdMemo').value.trim(),photos:[]};customBirds.push(b);if(photos.length)birdUserPhotos[id]=photos;try{store.set('customBirds',customBirds);store.set('birdUserPhotos',birdUserPhotos)}catch(err){customBirds=customBirds.filter(x=>x.id!==id);delete birdUserPhotos[id];alert('写真容量が大きすぎて保存できませんでした。写真なし、または小さい画像で登録してください。');return;}$('birdForm').reset();$('birdDialog').close();renderBirds();renderBirdProgress();};
 function renderChecklist(){$('checklistItems').innerHTML=APP.checklist.map((item,i)=>`<label class="check-row"><input type="checkbox" data-check="${i}" ${checks[i]?'checked':''}><span>${item}</span></label>`).join('');document.querySelectorAll('[data-check]').forEach(c=>c.onchange=()=>{checks[c.dataset.check]=c.checked;store.set('checks',checks);renderCheckProgress();});renderCheckProgress();}
 function renderCheckProgress(){const total=APP.checklist.length;const done=Object.values(checks).filter(Boolean).length;const pct=total?Math.round(done/total*100):0;$('checkProgress').innerHTML=`<b>準備 ${done}/${total}</b><div class="bar"><i style="width:${pct}%"></i></div><p class="muted">${pct}% 完了</p>`;}
 $('resetChecklist').onclick=()=>{checks={};store.set('checks',checks);renderChecklist();};
@@ -114,22 +134,22 @@ let deferredPrompt;window.addEventListener('beforeinstallprompt',e=>{e.preventDe
 
 const mascotAssets={
   tomokichi:[
-    {src:'assets/characters/wai_birdwatch01.png', lines:['鳥おった！！','匍匐前進で接近や！','双眼鏡どこや！','声を出したら逃げるで！']},
-    {src:'assets/characters/wai_birdwatch02.png', lines:['船上探鳥、酔う前が勝負！','カツオドリおるか！？','双眼鏡スタンバイ完了！']},
-    {src:'assets/characters/wai_pants.png', lines:['パンイチで走ったら砂あっつ！','島の風を感じる！','これは旅の開放感や！']}
+    {src:'assets/characters/wai_birdwatch01.png', lines:['鳥おった！！','動くな動くな動くな！','双眼鏡どこや！','今の撮れた！？','アカガシラか！？']},
+    {src:'assets/characters/wai_birdwatch02.png', lines:['海鳥きたー！','カツオドリや！','酔う前に探鳥や！','右舷見て右舷！','ノスリちゃうか！？']},
+    {src:'assets/characters/wai_pants.png', lines:['暑いので仕方がない','おまわりさんおらんからね＾＾','ﾜｯｼｮｲﾜｯｼｮｲ','水着とパンツに違いはないやろ','全裸じゃないので']}
   ],
   ponchan:[
-    {src:'assets/characters/pon_ship.png', lines:['氷結補給〜♪','船でも無糖レモン！','島最高〜']},
-    {src:'assets/characters/pon_snorkel.png', lines:['飲みながら泳がんようにする〜','海きれいすぎる！','シュノーケル最高〜']},
-    {src:'assets/characters/pon_yashi.png', lines:['ヤシガニにも氷結見せとこ♪','無糖レモンしか勝たん','ヤシガニでっか！']},
-    {src:'assets/characters/couple_ship.png', lines:['夫婦で船上探鳥！','父島へゴー！','鳥も海も全部見るで！']}
+    {src:'assets/characters/pon_ship.png', lines:['氷結補給〜♪','船でも飲むで〜','あと何本あるん？','海見ながら飲みたい〜','着いたらまず乾杯や']},
+    {src:'assets/characters/pon_snorkel.png', lines:['海の中でも飲みたい〜','氷結持って潜れんかな','泳いだ後は一杯や','イルカ見ながら飲みたい','冷えてるかな〜']},
+    {src:'assets/characters/pon_yashi.png', lines:['ヤシガニと乾杯や〜','飲みながら見よ〜','島最高や〜','次はレモン補給や','もう一本いこか♪']},
+    {src:'assets/characters/couple_ship.png', lines:['鳥おった！！','乾杯しよ〜','右見て右！','飲みながら探鳥や','小笠原最高！']}
   ]
 };
 const rareMascot={
   src:'assets/characters/rare_kohtaro.png',
-  lines:['レアこうたろう出現！','5秒だけお邪魔します','見つけたらラッキー！'],
+  lines:['いいちこ。。。','横須賀ちゃうんか','ゴルフ場ないんか'],
   showMs:5000,
-  probability:0.08
+  probability:0.05
 };
 let rareMascotTimer=null;
 let mascotState={mascotTomokichi:null,mascotPonchan:null};
@@ -296,8 +316,9 @@ setMascotImage('mascotPonchan','ponchan');
 restoreMascotPositions();
 enableMascotDrag('mascotTomokichi');
 enableMascotDrag('mascotPonchan');
+ensureMascotRare=ensureRareMascotElement();
+enableMascotDrag('mascotRareKohtaro');
 scheduleMascotRandomMove();
-ensureRareMascotElement();
 setTimeout(()=>{moveMascot('mascotTomokichi',true);moveMascot('mascotPonchan',true);},900);
 window.addEventListener('resize',()=>{
   ['mascotTomokichi','mascotPonchan'].forEach(id=>{
