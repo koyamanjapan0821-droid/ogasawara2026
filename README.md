@@ -25,3 +25,9 @@ GitHub Pages公開用の旅のしおりアプリです。
 4. GitHub Pages反映後、ブラウザを強制更新
 
 PWAキャッシュが残る場合は、iPhoneのホーム画面アイコンを削除して再追加してください。
+
+
+## V5.1
+- `assets/characters/rare_kohtaro.png` を低確率レアキャラとして追加。
+- 12秒ごとに低確率判定、出現時間は5秒。
+- 画像本体はZIPに含めず、GitHub上の同パス配置を前提。

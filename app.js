@@ -125,6 +125,13 @@ const mascotAssets={
     {src:'assets/characters/couple_ship.png', lines:['夫婦で船上探鳥！','父島へゴー！','鳥も海も全部見るで！']}
   ]
 };
+const rareMascot={
+  src:'assets/characters/rare_kohtaro.png',
+  lines:['レアこうたろう出現！','5秒だけお邪魔します','見つけたらラッキー！'],
+  showMs:5000,
+  probability:0.08
+};
+let rareMascotTimer=null;
 let mascotState={mascotTomokichi:null,mascotPonchan:null};
 let mascotDragPauseUntil=0;
 let mascotRandomTimer=null;
@@ -232,9 +239,54 @@ function enableMascotDrag(id){
   el.addEventListener('pointerup',finish);
   el.addEventListener('pointercancel',finish);
 }
+function ensureRareMascotElement(){
+  let el=$('mascotRareKohtaro');
+  if(el) return el;
+  el=document.createElement('button');
+  el.id='mascotRareKohtaro';
+  el.type='button';
+  el.className='mascot mascot-rare hidden';
+  el.setAttribute('aria-label','レアこうたろう');
+  el.style.backgroundImage=`url("${rareMascot.src}")`;
+  el.onclick=()=>showRareMascotLine();
+  $('mascotLayer').appendChild(el);
+  return el;
+}
+function showRareMascotLine(){
+  const el=$('mascotRareKohtaro'); if(!el || el.classList.contains('hidden')) return;
+  const bubble=$('mascotBubble');
+  bubble.textContent=rareMascot.lines[Math.floor(Math.random()*rareMascot.lines.length)];
+  const r=el.getBoundingClientRect();
+  bubble.style.left=Math.max(12,Math.min(window.innerWidth-230,r.left-50))+'px';
+  bubble.style.top=Math.max(80,r.top-56)+'px';
+  bubble.classList.remove('hidden');
+  clearTimeout(showMascotLine.timer);
+  showMascotLine.timer=setTimeout(()=>bubble.classList.add('hidden'),2000);
+}
+function maybeShowRareMascot(force=false){
+  const el=ensureRareMascotElement();
+  if(!force && (Date.now()<mascotDragPauseUntil || Math.random()>rareMascot.probability)) return;
+  if(!el.classList.contains('hidden')) return;
+  const b=mascotBounds(el);
+  const x=b.margin+Math.random()*(b.maxX-b.margin);
+  const y=Math.max(90, window.innerHeight*.42)+Math.random()*Math.max(20,(b.maxY-window.innerHeight*.42));
+  const pos=clampMascotPosition(el,x,y);
+  el.style.left=pos.x+'px';
+  el.style.top=pos.y+'px';
+  el.classList.remove('hidden');
+  el.classList.add('mascot-pop');
+  setTimeout(()=>el.classList.remove('mascot-pop'),900);
+  clearTimeout(maybeShowRareMascot.hideTimer);
+  maybeShowRareMascot.hideTimer=setTimeout(()=>{
+    el.classList.add('hidden');
+    $('mascotBubble').classList.add('hidden');
+  }, rareMascot.showMs);
+}
 function scheduleMascotRandomMove(){
   clearInterval(mascotRandomTimer);
   mascotRandomTimer=setInterval(()=>moveMascot(Math.random()>.5?'mascotTomokichi':'mascotPonchan'),9000);
+  clearInterval(rareMascotTimer);
+  rareMascotTimer=setInterval(()=>maybeShowRareMascot(false),12000);
 }
 
 $('mascotTomokichi').onclick=()=>showMascotLine('mascotTomokichi');
@@ -245,6 +297,7 @@ restoreMascotPositions();
 enableMascotDrag('mascotTomokichi');
 enableMascotDrag('mascotPonchan');
 scheduleMascotRandomMove();
+ensureRareMascotElement();
 setTimeout(()=>{moveMascot('mascotTomokichi',true);moveMascot('mascotPonchan',true);},900);
 window.addEventListener('resize',()=>{
   ['mascotTomokichi','mascotPonchan'].forEach(id=>{

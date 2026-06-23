@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ogasawara2026-v5-birds-local';
+const CACHE_NAME = 'ogasawara2026-v5-1-rare-kohtaro';
 const ASSETS = [
   './',
   './index.html',
@@ -14,6 +14,7 @@ const ASSETS = [
   './assets/characters/wai_birdwatch01.png',
   './assets/characters/wai_birdwatch02.png',
   './assets/characters/wai_pants.png',
+  './assets/characters/rare_kohtaro.png',
   './assets/birds/akagashirakarasubato01.jpg',
   './assets/birds/akagashirakarasubato02.jpg',
   './assets/birds/akagashirakarasubato03.jpg',
