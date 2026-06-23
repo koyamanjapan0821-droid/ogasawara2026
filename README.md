@@ -36,3 +36,18 @@ https://koyamanjapan0821-droid.github.io/ogasawara2026/
 - 夫婦キャラクター：画面内にランダム出現、タップでセリフ
 - Google Maps：スポット検索、ナビ、旅行中スポット追加、お気に入り/訪問済管理
 - オフライン：アプリ本体・入力済みデータをローカル保持
+
+
+## V3 キャラクター実装
+
+GitHub上の `assets/characters/` に配置済みの以下ファイルを使用します。
+
+- couple_ship.png
+- pon_ship.png
+- pon_snorkel.png
+- pon_yashi.png
+- wai_birdwatch01.png
+- wai_birdwatch02.png
+- wai_pants.png
+
+未配置画像は参照していません。

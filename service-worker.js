@@ -1,7 +1,20 @@
-const CACHE_NAME = 'ogasawara2026-v2';
-const ASSETS = ['./','./index.html','./style.css','./app.js','./manifest.json','./README.md'];
+const CACHE_NAME = 'ogasawara2026-v3';
+const ASSETS = [
+  './','./index.html','./style.css','./app.js','./manifest.json','./README.md','./assets/icon.svg',
+  './assets/characters/couple_ship.png',
+  './assets/characters/pon_ship.png',
+  './assets/characters/pon_snorkel.png',
+  './assets/characters/pon_yashi.png',
+  './assets/characters/wai_birdwatch01.png',
+  './assets/characters/wai_birdwatch02.png',
+  './assets/characters/wai_pants.png'
+];
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)).then(()=>self.skipWaiting()));
+  event.waitUntil(caches.open(CACHE_NAME).then(async cache => {
+    for (const asset of ASSETS) {
+      try { await cache.add(asset); } catch(e) {}
+    }
+  }).then(()=>self.skipWaiting()));
 });
 self.addEventListener('activate', event => {
   event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))).then(()=>self.clients.claim()));

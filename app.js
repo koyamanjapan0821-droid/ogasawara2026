@@ -110,10 +110,27 @@ function weatherText(c){if([0].includes(c))return'快晴';if([1,2,3].includes(c)
 function escapeHtml(str){return String(str).replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]))}
 let deferredPrompt;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBtn').classList.remove('hidden');});$('installBtn').onclick=async()=>{if(deferredPrompt){deferredPrompt.prompt();deferredPrompt=null;$('installBtn').classList.add('hidden')}};
 
-const mascotLines={tomokichi:['鳥おった！！','双眼鏡どこや！','ヤシガニや！','パンイチで走ったら砂あっつ！','船上探鳥、酔う前が勝負！'],ponchan:['氷結補給〜♪','飲みながら行こ〜','島最高〜','無糖レモンしか勝たん','イルカ見ながら乾杯や〜']};
-function showMascotLine(who){const el=who==='tomokichi'?$('mascotTomokichi'):$('mascotPonchan');const bubble=$('mascotBubble');const lines=mascotLines[who];bubble.textContent=lines[Math.floor(Math.random()*lines.length)];const r=el.getBoundingClientRect();bubble.style.left=Math.max(12,Math.min(window.innerWidth-210,r.left-50))+'px';bubble.style.top=Math.max(80,r.top-52)+'px';bubble.classList.remove('hidden');clearTimeout(showMascotLine.timer);showMascotLine.timer=setTimeout(()=>bubble.classList.add('hidden'),2800);}
-function moveMascot(id){const el=$(id);const x=10+Math.random()*70;const y=58+Math.random()*24;el.style.left=x+'vw';el.style.top=y+'vh';el.classList.add('mascot-pop');setTimeout(()=>el.classList.remove('mascot-pop'),900);}
-$('mascotTomokichi').onclick=()=>showMascotLine('tomokichi');$('mascotPonchan').onclick=()=>showMascotLine('ponchan');
+
+const mascotAssets={
+  tomokichi:[
+    {src:'assets/characters/wai_birdwatch01.png', lines:['鳥おった！！','匍匐前進で接近や！','双眼鏡どこや！','声を出したら逃げるで！']},
+    {src:'assets/characters/wai_birdwatch02.png', lines:['船上探鳥、酔う前が勝負！','カツオドリおるか！？','双眼鏡スタンバイ完了！']},
+    {src:'assets/characters/wai_pants.png', lines:['パンイチで走ったら砂あっつ！','島の風を感じる！','これは旅の開放感や！']}
+  ],
+  ponchan:[
+    {src:'assets/characters/pon_ship.png', lines:['氷結補給〜♪','船でも無糖レモン！','島最高〜']},
+    {src:'assets/characters/pon_snorkel.png', lines:['飲みながら泳がんようにする〜','海きれいすぎる！','シュノーケル最高〜']},
+    {src:'assets/characters/pon_yashi.png', lines:['ヤシガニにも氷結見せとこ♪','無糖レモンしか勝たん','ヤシガニでっか！']},
+    {src:'assets/characters/couple_ship.png', lines:['夫婦で船上探鳥！','父島へゴー！','鳥も海も全部見るで！']}
+  ]
+};
+let mascotState={mascotTomokichi:null,mascotPonchan:null};
+function pickMascot(who){const list=mascotAssets[who];return list[Math.floor(Math.random()*list.length)];}
+function setMascotImage(id, who){const el=$(id);const item=pickMascot(who);mascotState[id]=item;el.style.backgroundImage=`url("${item.src}")`;el.title=item.src.split('/').pop();}
+function showMascotLine(id){const el=$(id);const bubble=$('mascotBubble');const item=mascotState[id] || pickMascot(id==='mascotTomokichi'?'tomokichi':'ponchan');const lines=item.lines || ['島最高〜'];bubble.textContent=lines[Math.floor(Math.random()*lines.length)];const r=el.getBoundingClientRect();bubble.style.left=Math.max(12,Math.min(window.innerWidth-230,r.left-50))+'px';bubble.style.top=Math.max(80,r.top-56)+'px';bubble.classList.remove('hidden');clearTimeout(showMascotLine.timer);showMascotLine.timer=setTimeout(()=>bubble.classList.add('hidden'),2800);}
+function moveMascot(id){const el=$(id);const who=id==='mascotTomokichi'?'tomokichi':'ponchan';setMascotImage(id,who);const x=6+Math.random()*76;const y=54+Math.random()*25;el.style.left=x+'vw';el.style.top=y+'vh';el.classList.add('mascot-pop');setTimeout(()=>el.classList.remove('mascot-pop'),900);}
+$('mascotTomokichi').onclick=()=>showMascotLine('mascotTomokichi');
+$('mascotPonchan').onclick=()=>showMascotLine('mascotPonchan');
 setInterval(()=>moveMascot(Math.random()>.5?'mascotTomokichi':'mascotPonchan'),9000);
 setTimeout(()=>{moveMascot('mascotTomokichi');moveMascot('mascotPonchan');},900);
 
