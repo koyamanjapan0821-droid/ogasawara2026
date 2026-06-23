@@ -174,7 +174,7 @@ function clampMascotPosition(el,x,y){
 }
 function saveMascotPositions(){
   const data={};
-  ['mascotTomokichi','mascotPonchan'].forEach(id=>{
+  ['mascotTomokichi','mascotPonchan','mascotRareKohtaro'].forEach(id=>{
     const el=$(id); if(!el) return;
     data[id]={left:el.style.left, top:el.style.top};
   });
@@ -182,7 +182,7 @@ function saveMascotPositions(){
 }
 function restoreMascotPositions(){
   const data=store.get(mascotPositionStoreKey,{});
-  ['mascotTomokichi','mascotPonchan'].forEach(id=>{
+  ['mascotTomokichi','mascotPonchan','mascotRareKohtaro'].forEach(id=>{
     const el=$(id); if(!el) return;
     const pos=data[id];
     if(pos&&pos.left&&pos.top){el.style.left=pos.left;el.style.top=pos.top;}
@@ -220,10 +220,12 @@ function changeMascotAfterTalk(id, isRare=false){
   changeMascotAfterTalk.timers = changeMascotAfterTalk.timers || {};
   clearTimeout(changeMascotAfterTalk.timers[id]);
   changeMascotAfterTalk.timers[id]=setTimeout(()=>{
-    $('mascotBubble')?.classList.add('hidden');
+    const bubble=$('mascotBubble');
+    if(bubble) bubble.classList.add('hidden');
     if(isRare){
       const rareEl=$('mascotRareKohtaro');
       if(rareEl) rareEl.classList.add('hidden');
+      clearTimeout(maybeShowRareMascot.hideTimer);
       const targetId=Math.random()>.5?'mascotTomokichi':'mascotPonchan';
       const target=$(targetId);
       if(!target) return;
@@ -234,9 +236,12 @@ function changeMascotAfterTalk(id, isRare=false){
     }
     const el=$(id); if(!el) return;
     const current=mascotState[id]?.src;
-    setMascotItem(id, pickDifferentMascotItem(current));
+    const next=pickDifferentMascotItem(current);
+    setMascotItem(id, next);
+    el.classList.remove('hidden');
     popMascotAtRandomPosition(id);
     saveMascotPositions();
+    maybeShowRareMascot(false);
   },3000);
 }
 function showMascotLine(id){
@@ -251,7 +256,7 @@ function showMascotLine(id){
   bubble.style.top=Math.max(80,r.top-56)+'px';
   bubble.classList.remove('hidden');
   clearTimeout(showMascotLine.timer);
-  showMascotLine.timer=setTimeout(()=>bubble.classList.add('hidden'),2800);
+  showMascotLine.timer=setTimeout(()=>bubble.classList.add('hidden'),3000);
   changeMascotAfterTalk(id,false);
 }
 function moveMascot(id, force=false){
@@ -326,31 +331,42 @@ function showRareMascotLine(){
   bubble.style.top=Math.max(80,r.top-56)+'px';
   bubble.classList.remove('hidden');
   clearTimeout(showMascotLine.timer);
-  showMascotLine.timer=setTimeout(()=>bubble.classList.add('hidden'),2000);
+  showMascotLine.timer=setTimeout(()=>bubble.classList.add('hidden'),3000);
+  clearTimeout(maybeShowRareMascot.hideTimer);
   changeMascotAfterTalk('mascotRareKohtaro',true);
 }
 function maybeShowRareMascot(force=false){
   const el=ensureRareMascotElement();
-  if(!force && (Date.now()<mascotDragPauseUntil || Math.random()>rareMascot.probability)) return;
+  if(!el) return;
+  const blocked = Date.now()<mascotDragPauseUntil || !document.hasFocus?.();
+  const roll = Math.random();
+  if(!force && (blocked || roll>=rareMascot.probability)) return;
   if(!el.classList.contains('hidden')) return;
+  clearTimeout(maybeShowRareMascot.hideTimer);
   const b=mascotBounds(el);
   const x=b.margin+Math.random()*(b.maxX-b.margin);
   const y=Math.max(90, window.innerHeight*.42)+Math.random()*Math.max(20,(b.maxY-window.innerHeight*.42));
   const pos=clampMascotPosition(el,x,y);
   el.style.left=pos.x+'px';
   el.style.top=pos.y+'px';
+  el.style.backgroundImage=`url("${rareMascot.src}")`;
   el.classList.remove('hidden');
+  el.classList.remove('mascot-pop');
+  void el.offsetWidth;
   el.classList.add('mascot-pop');
   setTimeout(()=>el.classList.remove('mascot-pop'),900);
-  clearTimeout(maybeShowRareMascot.hideTimer);
   maybeShowRareMascot.hideTimer=setTimeout(()=>{
     el.classList.add('hidden');
-    $('mascotBubble').classList.add('hidden');
+    const bubble=$('mascotBubble');
+    if(bubble) bubble.classList.add('hidden');
   }, rareMascot.showMs);
 }
 function scheduleMascotRandomMove(){
   clearInterval(mascotRandomTimer);
-  mascotRandomTimer=setInterval(()=>moveMascot(Math.random()>.5?'mascotTomokichi':'mascotPonchan'),9000);
+  mascotRandomTimer=setInterval(()=>{
+    moveMascot(Math.random()>.5?'mascotTomokichi':'mascotPonchan');
+    maybeShowRareMascot(false);
+  },9000);
   clearInterval(rareMascotTimer);
   rareMascotTimer=setInterval(()=>maybeShowRareMascot(false),4000);
 }
@@ -367,7 +383,7 @@ enableMascotDrag('mascotRareKohtaro');
 scheduleMascotRandomMove();
 setTimeout(()=>{moveMascot('mascotTomokichi',true);moveMascot('mascotPonchan',true);},900);
 window.addEventListener('resize',()=>{
-  ['mascotTomokichi','mascotPonchan'].forEach(id=>{
+  ['mascotTomokichi','mascotPonchan','mascotRareKohtaro'].forEach(id=>{
     const el=$(id); if(!el) return;
     const r=el.getBoundingClientRect();
     const pos=clampMascotPosition(el,r.left,r.top);
