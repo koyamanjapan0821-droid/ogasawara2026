@@ -147,7 +147,7 @@ const mascotAssets={
 };
 const rareMascot={
   src:'assets/characters/rare_kohtaro.png',
-  lines:['吉四六。。。','横須賀ちゃうんか','ゴルフ場ないんか'],
+  lines:['吉四六。。。','横須賀ちゃうんか','ゴルフ場ないんか','ﾋﾛﾐｻｰﾝ!!ﾋﾛﾐｻｰﾝ!!','いいですよね、こういう時間'],
   showMs:5000,
   probability:0.05
 };
