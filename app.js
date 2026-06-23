@@ -134,15 +134,15 @@ let deferredPrompt;window.addEventListener('beforeinstallprompt',e=>{e.preventDe
 
 const mascotAssets={
   tomokichi:[
-    {src:'assets/characters/wai_birdwatch01.png', lines:['鳥おった！！','動くな動くな動くな！','双眼鏡どこや！','今の撮れた！？','アカガシラか！？']},
-    {src:'assets/characters/wai_birdwatch02.png', lines:['海鳥きたー！','カツオドリや！','酔う前に探鳥や！','右舷見て右舷！','ノスリちゃうか！？']},
-    {src:'assets/characters/wai_pants.png', lines:['暑いので仕方がない','おまわりさんおらんからね＾＾','ﾜｯｼｮｲﾜｯｼｮｲ','水着とパンツに違いはないやろ','全裸じゃないので']}
+    {src:'assets/characters/wai_birdwatch01.png', lines:['鳥？ゴミやんけ','暑さとの闘いやな','双眼鏡どこや！','屁してもバレない','全然おらんがな']},
+    {src:'assets/characters/wai_birdwatch02.png', lines:['おじま、、、','フクロウおらんのか','コウモリやんけ','ハゲてまう！','ハゲポコ元気？']},
+    {src:'assets/characters/wai_pants.png', lines:['暑いので仕方がない','ｱｶﾁｬｰﾝ!!ｱｶﾁｬｰﾝ!!','ﾜｯｼｮｲﾜｯｼｮｲ','水着とパンツに違いはないやろ','全裸じゃないので']}
   ],
   ponchan:[
-    {src:'assets/characters/pon_ship.png', lines:['氷結補給〜♪','船でも飲むで〜','あと何本あるん？','海見ながら飲みたい〜','着いたらまず乾杯や']},
-    {src:'assets/characters/pon_snorkel.png', lines:['海の中でも飲みたい〜','氷結持って潜れんかな','泳いだ後は一杯や','イルカ見ながら飲みたい','冷えてるかな〜']},
-    {src:'assets/characters/pon_yashi.png', lines:['ヤシガニと乾杯や〜','飲みながら見よ〜','島最高や〜','次はレモン補給や','もう一本いこか♪']},
-    {src:'assets/characters/couple_ship.png', lines:['鳥おった！！','乾杯しよ〜','右見て右！','飲みながら探鳥や','小笠原最高！']}
+    {src:'assets/characters/pon_ship.png', lines:['７％売ってないんか','ネットがないと死ぬ','酔い止めって酒と飲んでええんか？','素人はだまっとれ','金はある、氷結をだな']},
+    {src:'assets/characters/pon_snorkel.png', lines:['海でシッコしてもバレない','海が氷結と同じ色や','氷結がないと死ぬ病','ｵｯｵｯｵｯ','ビビンバがあればええ']},
+    {src:'assets/characters/pon_yashi.png', lines:['ワイの～','ワイやで','ｺｯﾁ!!ｺｯﾁ!!ｺｯﾁ!!','ｵﾁ~ﾝﾁﾝ!!!','ション場どこや']},
+    {src:'assets/characters/couple_ship.png', lines:['しぇむ！！','しぇむしぇむ、、、','赤ちゃんなので！','ﾁｬﾊﾊ~ﾝ!!!','おがまるパック!!!']}
   ]
 };
 const rareMascot={
