@@ -188,12 +188,56 @@ function restoreMascotPositions(){
     if(pos&&pos.left&&pos.top){el.style.left=pos.left;el.style.top=pos.top;}
   });
 }
-function setMascotImage(id, who){
-  const el=$(id); if(!el) return;
-  const item=pickMascot(who);
+function setMascotItem(id, item){
+  const el=$(id); if(!el || !item) return;
   mascotState[id]=item;
   el.style.backgroundImage=`url("${item.src}")`;
   el.title=item.src.split('/').pop();
+}
+function setMascotImage(id, who){
+  setMascotItem(id, pickMascot(who));
+}
+function allNormalMascotItems(){
+  return [...mascotAssets.tomokichi, ...mascotAssets.ponchan];
+}
+function pickDifferentMascotItem(currentSrc){
+  const list=allNormalMascotItems().filter(item=>item.src!==currentSrc);
+  const pool=list.length?list:allNormalMascotItems();
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function popMascotAtRandomPosition(id){
+  const el=$(id); if(!el) return;
+  const b=mascotBounds(el);
+  const x=b.margin+Math.random()*(b.maxX-b.margin);
+  const y=Math.max(80, window.innerHeight*.48)+Math.random()*Math.max(20,(b.maxY-window.innerHeight*.48));
+  const pos=clampMascotPosition(el,x,y);
+  el.style.left=pos.x+'px';
+  el.style.top=pos.y+'px';
+  el.classList.add('mascot-pop');
+  setTimeout(()=>el.classList.remove('mascot-pop'),900);
+}
+function changeMascotAfterTalk(id, isRare=false){
+  changeMascotAfterTalk.timers = changeMascotAfterTalk.timers || {};
+  clearTimeout(changeMascotAfterTalk.timers[id]);
+  changeMascotAfterTalk.timers[id]=setTimeout(()=>{
+    $('mascotBubble')?.classList.add('hidden');
+    if(isRare){
+      const rareEl=$('mascotRareKohtaro');
+      if(rareEl) rareEl.classList.add('hidden');
+      const targetId=Math.random()>.5?'mascotTomokichi':'mascotPonchan';
+      const target=$(targetId);
+      if(!target) return;
+      setMascotImage(targetId, targetId==='mascotTomokichi'?'tomokichi':'ponchan');
+      popMascotAtRandomPosition(targetId);
+      saveMascotPositions();
+      return;
+    }
+    const el=$(id); if(!el) return;
+    const current=mascotState[id]?.src;
+    setMascotItem(id, pickDifferentMascotItem(current));
+    popMascotAtRandomPosition(id);
+    saveMascotPositions();
+  },3000);
 }
 function showMascotLine(id){
   if(Date.now()<mascotSuppressClickUntil) return;
@@ -208,6 +252,7 @@ function showMascotLine(id){
   bubble.classList.remove('hidden');
   clearTimeout(showMascotLine.timer);
   showMascotLine.timer=setTimeout(()=>bubble.classList.add('hidden'),2800);
+  changeMascotAfterTalk(id,false);
 }
 function moveMascot(id, force=false){
   if(!force && Date.now()<mascotDragPauseUntil) return;
@@ -282,6 +327,7 @@ function showRareMascotLine(){
   bubble.classList.remove('hidden');
   clearTimeout(showMascotLine.timer);
   showMascotLine.timer=setTimeout(()=>bubble.classList.add('hidden'),2000);
+  changeMascotAfterTalk('mascotRareKohtaro',true);
 }
 function maybeShowRareMascot(force=false){
   const el=ensureRareMascotElement();
@@ -316,7 +362,7 @@ setMascotImage('mascotPonchan','ponchan');
 restoreMascotPositions();
 enableMascotDrag('mascotTomokichi');
 enableMascotDrag('mascotPonchan');
-ensureMascotRare=ensureRareMascotElement();
+ensureRareMascotElement();
 enableMascotDrag('mascotRareKohtaro');
 scheduleMascotRandomMove();
 setTimeout(()=>{moveMascot('mascotTomokichi',true);moveMascot('mascotPonchan',true);},900);
