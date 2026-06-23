@@ -149,7 +149,7 @@ const rareMascot={
   src:'assets/characters/rare_kohtaro.png',
   lines:['吉四六。。。','横須賀ちゃうんか','ゴルフ場ないんか','ﾋﾛﾐｻｰﾝ!!ﾋﾛﾐｻｰﾝ!!','いいですよね、こういう時間'],
   showMs:5000,
-  probability:0.05
+  probability:0.1
 };
 let rareMascotTimer=null;
 let mascotState={mascotTomokichi:null,mascotPonchan:null};
