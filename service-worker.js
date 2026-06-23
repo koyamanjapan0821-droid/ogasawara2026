@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ogasawara2026-v3';
+const CACHE_NAME = 'ogasawara2026-v4-drag';
 const ASSETS = [
   './','./index.html','./style.css','./app.js','./manifest.json','./README.md','./assets/icon.svg',
   './assets/characters/couple_ship.png',

@@ -111,6 +111,7 @@ function escapeHtml(str){return String(str).replace(/[&<>'"]/g,m=>({'&':'&amp;',
 let deferredPrompt;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBtn').classList.remove('hidden');});$('installBtn').onclick=async()=>{if(deferredPrompt){deferredPrompt.prompt();deferredPrompt=null;$('installBtn').classList.add('hidden')}};
 
 
+
 const mascotAssets={
   tomokichi:[
     {src:'assets/characters/wai_birdwatch01.png', lines:['鳥おった！！','匍匐前進で接近や！','双眼鏡どこや！','声を出したら逃げるで！']},
@@ -125,14 +126,135 @@ const mascotAssets={
   ]
 };
 let mascotState={mascotTomokichi:null,mascotPonchan:null};
+let mascotDragPauseUntil=0;
+let mascotRandomTimer=null;
+let mascotSuppressClickUntil=0;
+const mascotPositionStoreKey='mascotPositionsV4';
+
 function pickMascot(who){const list=mascotAssets[who];return list[Math.floor(Math.random()*list.length)];}
-function setMascotImage(id, who){const el=$(id);const item=pickMascot(who);mascotState[id]=item;el.style.backgroundImage=`url("${item.src}")`;el.title=item.src.split('/').pop();}
-function showMascotLine(id){const el=$(id);const bubble=$('mascotBubble');const item=mascotState[id] || pickMascot(id==='mascotTomokichi'?'tomokichi':'ponchan');const lines=item.lines || ['島最高〜'];bubble.textContent=lines[Math.floor(Math.random()*lines.length)];const r=el.getBoundingClientRect();bubble.style.left=Math.max(12,Math.min(window.innerWidth-230,r.left-50))+'px';bubble.style.top=Math.max(80,r.top-56)+'px';bubble.classList.remove('hidden');clearTimeout(showMascotLine.timer);showMascotLine.timer=setTimeout(()=>bubble.classList.add('hidden'),2800);}
-function moveMascot(id){const el=$(id);const who=id==='mascotTomokichi'?'tomokichi':'ponchan';setMascotImage(id,who);const x=6+Math.random()*76;const y=54+Math.random()*25;el.style.left=x+'vw';el.style.top=y+'vh';el.classList.add('mascot-pop');setTimeout(()=>el.classList.remove('mascot-pop'),900);}
+function mascotBounds(el){
+  const margin=8;
+  const rect=el.getBoundingClientRect();
+  const w=rect.width||88;
+  const h=rect.height||88;
+  const maxX=Math.max(margin, window.innerWidth-w-margin);
+  const maxY=Math.max(margin, window.innerHeight-h-86);
+  return {margin,w,h,maxX,maxY};
+}
+function clampMascotPosition(el,x,y){
+  const b=mascotBounds(el);
+  return {x:Math.min(Math.max(x,b.margin),b.maxX), y:Math.min(Math.max(y,b.margin),b.maxY)};
+}
+function saveMascotPositions(){
+  const data={};
+  ['mascotTomokichi','mascotPonchan'].forEach(id=>{
+    const el=$(id); if(!el) return;
+    data[id]={left:el.style.left, top:el.style.top};
+  });
+  store.set(mascotPositionStoreKey,data);
+}
+function restoreMascotPositions(){
+  const data=store.get(mascotPositionStoreKey,{});
+  ['mascotTomokichi','mascotPonchan'].forEach(id=>{
+    const el=$(id); if(!el) return;
+    const pos=data[id];
+    if(pos&&pos.left&&pos.top){el.style.left=pos.left;el.style.top=pos.top;}
+  });
+}
+function setMascotImage(id, who){
+  const el=$(id); if(!el) return;
+  const item=pickMascot(who);
+  mascotState[id]=item;
+  el.style.backgroundImage=`url("${item.src}")`;
+  el.title=item.src.split('/').pop();
+}
+function showMascotLine(id){
+  if(Date.now()<mascotSuppressClickUntil) return;
+  const el=$(id); if(!el) return;
+  const bubble=$('mascotBubble');
+  const item=mascotState[id] || pickMascot(id==='mascotTomokichi'?'tomokichi':'ponchan');
+  const lines=item.lines || ['島最高〜'];
+  bubble.textContent=lines[Math.floor(Math.random()*lines.length)];
+  const r=el.getBoundingClientRect();
+  bubble.style.left=Math.max(12,Math.min(window.innerWidth-230,r.left-50))+'px';
+  bubble.style.top=Math.max(80,r.top-56)+'px';
+  bubble.classList.remove('hidden');
+  clearTimeout(showMascotLine.timer);
+  showMascotLine.timer=setTimeout(()=>bubble.classList.add('hidden'),2800);
+}
+function moveMascot(id, force=false){
+  if(!force && Date.now()<mascotDragPauseUntil) return;
+  const el=$(id); if(!el) return;
+  const who=id==='mascotTomokichi'?'tomokichi':'ponchan';
+  setMascotImage(id,who);
+  const b=mascotBounds(el);
+  const x=b.margin+Math.random()*(b.maxX-b.margin);
+  const y=Math.max(80, window.innerHeight*.50)+Math.random()*Math.max(20,(b.maxY-window.innerHeight*.50));
+  const pos=clampMascotPosition(el,x,y);
+  el.style.left=pos.x+'px';
+  el.style.top=pos.y+'px';
+  el.classList.add('mascot-pop');
+  setTimeout(()=>el.classList.remove('mascot-pop'),900);
+  saveMascotPositions();
+}
+function enableMascotDrag(id){
+  const el=$(id); if(!el) return;
+  let startX=0,startY=0,startLeft=0,startTop=0,dragging=false,moved=false;
+  el.addEventListener('pointerdown',e=>{
+    if(e.button!==undefined && e.button!==0) return;
+    const r=el.getBoundingClientRect();
+    startX=e.clientX; startY=e.clientY; startLeft=r.left; startTop=r.top;
+    dragging=true; moved=false;
+    el.setPointerCapture?.(e.pointerId);
+    el.classList.add('mascot-dragging');
+  });
+  el.addEventListener('pointermove',e=>{
+    if(!dragging) return;
+    const dx=e.clientX-startX, dy=e.clientY-startY;
+    if(Math.abs(dx)+Math.abs(dy)>5) moved=true;
+    const pos=clampMascotPosition(el,startLeft+dx,startTop+dy);
+    el.style.left=pos.x+'px';
+    el.style.top=pos.y+'px';
+    e.preventDefault();
+  }, {passive:false});
+  const finish=e=>{
+    if(!dragging) return;
+    dragging=false;
+    el.releasePointerCapture?.(e.pointerId);
+    el.classList.remove('mascot-dragging');
+    if(moved){
+      mascotDragPauseUntil=Date.now()+30000;
+      mascotSuppressClickUntil=Date.now()+450;
+      saveMascotPositions();
+      $('mascotBubble').classList.add('hidden');
+    }
+  };
+  el.addEventListener('pointerup',finish);
+  el.addEventListener('pointercancel',finish);
+}
+function scheduleMascotRandomMove(){
+  clearInterval(mascotRandomTimer);
+  mascotRandomTimer=setInterval(()=>moveMascot(Math.random()>.5?'mascotTomokichi':'mascotPonchan'),9000);
+}
+
 $('mascotTomokichi').onclick=()=>showMascotLine('mascotTomokichi');
 $('mascotPonchan').onclick=()=>showMascotLine('mascotPonchan');
-setInterval(()=>moveMascot(Math.random()>.5?'mascotTomokichi':'mascotPonchan'),9000);
-setTimeout(()=>{moveMascot('mascotTomokichi');moveMascot('mascotPonchan');},900);
+setMascotImage('mascotTomokichi','tomokichi');
+setMascotImage('mascotPonchan','ponchan');
+restoreMascotPositions();
+enableMascotDrag('mascotTomokichi');
+enableMascotDrag('mascotPonchan');
+scheduleMascotRandomMove();
+setTimeout(()=>{moveMascot('mascotTomokichi',true);moveMascot('mascotPonchan',true);},900);
+window.addEventListener('resize',()=>{
+  ['mascotTomokichi','mascotPonchan'].forEach(id=>{
+    const el=$(id); if(!el) return;
+    const r=el.getBoundingClientRect();
+    const pos=clampMascotPosition(el,r.left,r.top);
+    el.style.left=pos.x+'px'; el.style.top=pos.y+'px';
+  });
+  saveMascotPositions();
+});
 
 if('serviceWorker' in navigator){navigator.serviceWorker.register('./service-worker.js').catch(()=>{});}
 updateCountdown();renderItinerary();renderSpots();renderVisitRate();renderBirds();renderChecklist();renderReservations();renderMemos();loadWeather();setInterval(updateCountdown,3600000);
