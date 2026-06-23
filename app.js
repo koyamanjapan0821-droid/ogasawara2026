@@ -352,7 +352,7 @@ function scheduleMascotRandomMove(){
   clearInterval(mascotRandomTimer);
   mascotRandomTimer=setInterval(()=>moveMascot(Math.random()>.5?'mascotTomokichi':'mascotPonchan'),9000);
   clearInterval(rareMascotTimer);
-  rareMascotTimer=setInterval(()=>maybeShowRareMascot(false),12000);
+  rareMascotTimer=setInterval(()=>maybeShowRareMascot(false),4000);
 }
 
 $('mascotTomokichi').onclick=()=>showMascotLine('mascotTomokichi');
