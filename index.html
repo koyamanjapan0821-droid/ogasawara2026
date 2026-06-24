@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="小笠原2026">
   <title>小笠原2026</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=20260624v11">
+  <link rel="stylesheet" href="style.css?v=20260624v12">
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -132,6 +132,22 @@
     </nav>
   </div>
 
+
+  <dialog id="itineraryEventDialog">
+    <form method="dialog" id="itineraryEventForm" class="dialog-card">
+      <h3>予定を編集</h3>
+      <input id="editEventDayId" type="hidden">
+      <input id="editEventId" type="hidden">
+      <label class="label" for="editEventTime">時間</label>
+      <input id="editEventTime" placeholder="例：午前 / 10:40">
+      <label class="label" for="editEventTitle">項目</label>
+      <input id="editEventTitle" placeholder="予定名" required>
+      <label class="label" for="editEventMemo">備考</label>
+      <textarea id="editEventMemo" rows="4" placeholder="メモ・備考"></textarea>
+      <div class="dialog-actions"><button id="cancelItineraryEventBtn" type="button" class="secondary">キャンセル</button><button id="saveItineraryEventBtn" type="button" class="primary">保存</button></div>
+    </form>
+  </dialog>
+
   <dialog id="spotDialog">
     <form method="dialog" id="spotForm" class="dialog-card">
       <h3>スポット追加</h3>
@@ -178,6 +194,6 @@
     <button id="mascotPonchan" class="mascot mascot-ponchan" type="button" aria-label="ぽんちゃんキャラ"></button>
   </div>
 
-  <script src="app.js?v=20260624v11"></script>
+  <script src="app.js?v=20260624v12"></script>
 </body>
 </html>

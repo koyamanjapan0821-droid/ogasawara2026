@@ -113,14 +113,15 @@ function switchTab(id){document.querySelectorAll('.screen').forEach(s=>s.classLi
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));document.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>switchTab(b.dataset.jump));
 function updateCountdown(){const now=new Date();const diff=APP.startDate-now;if(diff<=0){$('countdown').textContent='出発済';return}const d=Math.ceil(diff/86400000);$('countdown').textContent=`あと${d}日`;}
 function itineraryEventHtml(e, dayId){
-  return `<div class="event itinerary-event"><div class="time">${escapeHtml(e.time||'')}</div><div><div class="event-title">${escapeHtml(e.title||'')}</div><div class="muted">${escapeHtml(e.memo||'')}</div><div class="itinerary-actions"><button class="mini-btn" data-editevent="${dayId}|${e.id}" type="button">編集</button><button class="mini-btn danger-mini" data-delevent="${dayId}|${e.id}" type="button">削除</button></div></div></div>`;
+  return `<div class="event itinerary-event" draggable="true" data-eventrow="${dayId}|${e.id}"><div class="drag-handle" aria-hidden="true">☰</div><div class="time">${escapeHtml(e.time||'')}</div><div><div class="event-title">${escapeHtml(e.title||'')}</div><div class="muted">${escapeHtml(e.memo||'')}</div><div class="itinerary-actions"><button class="mini-btn" data-editevent="${dayId}|${e.id}" type="button">編集</button><button class="mini-btn danger-mini" data-delevent="${dayId}|${e.id}" type="button">削除</button></div></div></div>`;
 }
 function renderItinerary(){
   const wrap=$('itineraryList');
-  wrap.innerHTML=itineraryItems.map(day=>`<article class="card day-card"><div class="itinerary-day-head"><div><h3>${escapeHtml(day.title)}</h3><p class="muted">${escapeHtml(day.date)}</p></div><div class="itinerary-actions day-actions"><button class="mini-btn" data-editday="${day.id}" type="button">日程編集</button><button class="mini-btn" data-addevent="${day.id}" type="button">予定追加</button><button class="mini-btn danger-mini" data-delday="${day.id}" type="button">削除</button></div></div><div class="timeline">${(day.events||[]).map(e=>itineraryEventHtml(e,day.id)).join('')||'<p class="muted">予定なし。予定追加から登録できます。</p>'}</div></article>`).join('')||'<p class="muted">日程がありません。日程を追加できます。</p>';
+  wrap.innerHTML=itineraryItems.map(day=>`<article class="card day-card"><div class="itinerary-day-head"><div><h3>${escapeHtml(day.title)}</h3><p class="muted">${escapeHtml(day.date)}</p></div><div class="itinerary-actions day-actions"><button class="mini-btn" data-editday="${day.id}" type="button">日程編集</button><button class="mini-btn" data-addevent="${day.id}" type="button">予定追加</button><button class="mini-btn danger-mini" data-delday="${day.id}" type="button">削除</button></div></div><div class="timeline itinerary-sortable" data-dayevents="${day.id}">${(day.events||[]).map(e=>itineraryEventHtml(e,day.id)).join('')||'<p class="muted">予定なし。予定追加から登録できます。</p>'}</div></article>`).join('')||'<p class="muted">日程がありません。日程を追加できます。</p>';
   const today=itineraryItems.find(d=>new Date(d.date+'T23:59:59+09:00')>=new Date())||itineraryItems[0];
   $('nextPlan').innerHTML=today ? (today.events||[]).slice(0,3).map(e=>`<div class="event"><div class="time">${escapeHtml(e.time||'')}</div><div><div class="event-title">${escapeHtml(e.title||'')}</div><div class="muted">${escapeHtml(e.memo||'')}</div></div></div>`).join('') : '<p class="muted">予定なし</p>';
   setupItineraryActions();
+  setupItineraryDragDrop();
 }
 function addItineraryDay(){
   const date=prompt('日付を入力（例：2026-08-17）','2026-08-17');
@@ -168,16 +169,85 @@ function addItineraryEvent(dayId){
 function editItineraryEvent(dayId,eventId){
   const day=itineraryItems.find(d=>d.id===dayId); if(!day) return;
   const ev=(day.events||[]).find(e=>e.id===eventId); if(!ev) return;
-  const time=prompt('時間を編集', ev.time||'');
-  if(time===null) return;
-  const title=prompt('予定名を編集', ev.title||'');
-  if(title===null) return;
-  const memo=prompt('メモを編集', ev.memo||'');
-  if(memo===null) return;
-  const cleanTitle=title.trim();
-  if(!cleanTitle) return;
-  ev.time=time.trim(); ev.title=cleanTitle; ev.memo=memo.trim();
-  saveItinerary(); renderItinerary();
+  openItineraryEventDialog(dayId, ev);
+}
+function openItineraryEventDialog(dayId, ev){
+  const dialog=$('itineraryEventDialog');
+  if(!dialog){
+    const time=prompt('時間を編集', ev.time||'');
+    if(time===null) return;
+    const title=prompt('予定名を編集', ev.title||'');
+    if(title===null) return;
+    const memo=prompt('メモを編集', ev.memo||'');
+    if(memo===null) return;
+    const cleanTitle=title.trim();
+    if(!cleanTitle) return;
+    ev.time=time.trim(); ev.title=cleanTitle; ev.memo=memo.trim();
+    saveItinerary(); renderItinerary();
+    return;
+  }
+  $('editEventDayId').value=dayId;
+  $('editEventId').value=ev.id;
+  $('editEventTime').value=ev.time||'';
+  $('editEventTitle').value=ev.title||'';
+  $('editEventMemo').value=ev.memo||'';
+  dialog.showModal();
+}
+function closeItineraryEventDialog(){
+  const dialog=$('itineraryEventDialog');
+  if(dialog?.open) dialog.close();
+}
+function saveItineraryEventDialog(){
+  const dayId=$('editEventDayId').value;
+  const eventId=$('editEventId').value;
+  const day=itineraryItems.find(d=>d.id===dayId); if(!day) return;
+  const ev=(day.events||[]).find(e=>e.id===eventId); if(!ev) return;
+  const title=$('editEventTitle').value.trim();
+  if(!title){ alert('予定名を入力してください。'); return; }
+  ev.time=$('editEventTime').value.trim();
+  ev.title=title;
+  ev.memo=$('editEventMemo').value.trim();
+  saveItinerary();
+  closeItineraryEventDialog();
+  renderItinerary();
+}
+function setupItineraryDragDrop(){
+  document.querySelectorAll('[data-eventrow]').forEach(row=>{
+    row.addEventListener('dragstart',e=>{
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed='move';
+      e.dataTransfer.setData('text/plain', row.dataset.eventrow);
+    });
+    row.addEventListener('dragend',()=>row.classList.remove('dragging'));
+  });
+  document.querySelectorAll('[data-dayevents]').forEach(list=>{
+    list.addEventListener('dragover',e=>{
+      e.preventDefault();
+      const dragging=document.querySelector('.itinerary-event.dragging');
+      if(!dragging) return;
+      const after=getDragAfterElement(list, e.clientY);
+      if(after==null){ list.appendChild(dragging); }
+      else { list.insertBefore(dragging, after); }
+    });
+    list.addEventListener('drop',e=>{
+      e.preventDefault();
+      const dayId=list.dataset.dayevents;
+      const day=itineraryItems.find(d=>d.id===dayId); if(!day) return;
+      const order=[...list.querySelectorAll('[data-eventrow]')].map(el=>el.dataset.eventrow.split('|')[1]);
+      day.events=order.map(id=>(day.events||[]).find(ev=>ev.id===id)).filter(Boolean);
+      saveItinerary();
+      renderItinerary();
+    });
+  });
+}
+function getDragAfterElement(container,y){
+  const els=[...container.querySelectorAll('.itinerary-event:not(.dragging)')];
+  return els.reduce((closest,child)=>{
+    const box=child.getBoundingClientRect();
+    const offset=y-box.top-box.height/2;
+    if(offset<0 && offset>closest.offset){ return {offset,element:child}; }
+    return closest;
+  },{offset:Number.NEGATIVE_INFINITY,element:null}).element;
 }
 function deleteItineraryEvent(dayId,eventId){
   const day=itineraryItems.find(d=>d.id===dayId); if(!day) return;
@@ -194,6 +264,8 @@ function setupItineraryActions(){
   document.querySelectorAll('[data-delevent]').forEach(b=>b.onclick=()=>{const [dayId,eventId]=b.dataset.delevent.split('|');deleteItineraryEvent(dayId,eventId);});
 }
 $('addItineraryDayBtn').onclick=addItineraryDay;
+if($('saveItineraryEventBtn')) $('saveItineraryEventBtn').onclick=saveItineraryEventDialog;
+if($('cancelItineraryEventBtn')) $('cancelItineraryEventBtn').onclick=closeItineraryEventDialog;
 function searchMapUrl(s){return s.url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.query || s.name + ' 父島')}`}
 function navMapUrl(s){return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(s.query || s.name + ' 父島')}`}
 function renderSpots(){const q=$('spotSearch').value.toLowerCase();const f=$('spotFilter').value;const all=[...APP.spots,...customSpots];const list=all.filter(s=>((f==='all'||s.category===f)||(f==='favorite'&&favorites[s.id]))&&(`${s.name} ${s.memo}`.toLowerCase().includes(q)));$('spotList').innerHTML=list.map(s=>`<article class="card spot"><div><h3>${favorites[s.id]?'⭐ ':''}${escapeHtml(s.name)}</h3><p>${escapeHtml(s.memo||'')}</p><span class="tag">${labelCat(s.category)}</span>${s.category==='custom'?'<span class="tag">旅行中追加</span>':''}${favorites[s.id]?'<span class="tag">お気に入り</span>':''}<div class="spot-actions"><a class="link-btn" href="${searchMapUrl(s)}" target="_blank" rel="noopener">Mapsで開く</a><a class="link-btn nav-btn" href="${navMapUrl(s)}" target="_blank" rel="noopener">ナビ</a><button class="visit-btn ${favorites[s.id]?'done':''}" data-fav="${s.id}">${favorites[s.id]?'★お気に入り':'☆お気に入り'}</button><button class="visit-btn ${visited[s.id]?'done':''}" data-visit="${s.id}">${visited[s.id]?'訪問済':'未訪問'}</button></div></div><div>${visited[s.id]?'✅':favorites[s.id]?'⭐':'📍'}</div></article>`).join('')||'<p class="muted">該当スポットなし</p>';document.querySelectorAll('[data-visit]').forEach(b=>b.onclick=()=>{visited[b.dataset.visit]=!visited[b.dataset.visit];store.set('visited',visited);renderSpots();renderVisitRate();});document.querySelectorAll('[data-fav]').forEach(b=>b.onclick=()=>{favorites[b.dataset.fav]=!favorites[b.dataset.fav];store.set('favorites',favorites);renderSpots();});}

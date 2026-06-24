@@ -75,3 +75,13 @@
 .mini-btn{border:0;border-radius:999px;padding:7px 10px;background:#eef2f7;color:#172033;font-size:12px;font-weight:900;line-height:1;}
 .danger-mini{background:#fff0f0;color:var(--red);}
 @media(max-width:420px){.itinerary-day-head{flex-direction:column}.day-actions{justify-content:flex-start;min-width:0}.itinerary-actions{gap:5px}.mini-btn{font-size:11px;padding:7px 9px}}
+
+
+/* V12: itinerary drag sort + full event edit */
+.itinerary-event{grid-template-columns:28px 64px 1fr;cursor:grab;}
+.itinerary-event.dragging{opacity:.55;background:rgba(0,122,255,.06);border-radius:16px;}
+.drag-handle{display:flex;align-items:center;justify-content:center;color:var(--muted);font-weight:900;touch-action:none;user-select:none;-webkit-user-select:none;}
+.itinerary-sortable{min-height:32px;}
+#itineraryEventForm .label{display:block;margin:10px 0 4px;}
+#editEventMemo{min-height:96px;}
+@media(max-width:420px){.itinerary-event{grid-template-columns:24px 54px 1fr}.drag-handle{font-size:14px}}

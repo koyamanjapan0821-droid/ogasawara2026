@@ -1,9 +1,9 @@
-const CACHE_NAME = 'ogasawara2026-v11-20260624-itinerary';
+const CACHE_NAME = 'ogasawara2026-v12-20260624-itinerary-drag';
 const APP_SHELL = [
   './',
   './index.html',
-  './style.css?v=20260624v11',
-  './app.js?v=20260624v11',
+  './style.css?v=20260624v12',
+  './app.js?v=20260624v12',
   './manifest.json'
 ];
 
