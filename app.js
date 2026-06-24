@@ -190,7 +190,7 @@ const mascotAssets={
   tomokichi:[
     {src:'assets/characters/wai_birdwatch01.png', lines:['鳥？ゴミやんけ','暑さとの闘いやな','双眼鏡どこや！','屁してもバレない','全然おらんがな']},
     {src:'assets/characters/wai_birdwatch02.png', lines:['おじま、、、','フクロウおらんのか','コウモリやんけ','ハゲてまう！','ハゲポコ元気？']},
-    {src:'assets/characters/wai_naked.png', lines:['ハヒャー!!!','あばばばばば!!!','大自然','風になる!!','全裸運動会!!!']},
+    {src:'assets/characters/wai_naked.png', lines:['ハヒャー!!!','あばばばばば!!!','ぴーち!!','風になる!!','全裸運動会!!!']},
     {src:'assets/characters/wai_pants.png', lines:['暑いので仕方がない','ｱｶﾁｬｰﾝ!!ｱｶﾁｬｰﾝ!!','ﾜｯｼｮｲﾜｯｼｮｲ','水着とパンツに違いはないやろ','全裸じゃないので']}
   ],
   ponchan:[
