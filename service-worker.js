@@ -1,9 +1,9 @@
-const CACHE_NAME = 'ogasawara2026-v8-20260623';
+const CACHE_NAME = 'ogasawara2026-v9-20260624';
 const APP_SHELL = [
   './',
   './index.html',
-  './style.css?v=20260623v8',
-  './app.js?v=20260623v8',
+  './style.css?v=20260624v9',
+  './app.js?v=20260624v9',
   './manifest.json'
 ];
 
@@ -30,6 +30,6 @@ self.addEventListener('fetch', event => {
         caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
         return response;
       })
-      .catch(() => caches.match(event.request).then(cached => cached || caches.match('./index.html')))
+      .catch(() => caches.match(event.request))
   );
 });

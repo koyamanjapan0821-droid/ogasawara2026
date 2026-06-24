@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="小笠原2026">
   <title>小笠原2026</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=20260623v8">
+  <link rel="stylesheet" href="style.css?v=20260624v9">
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -154,12 +154,20 @@
     </form>
   </dialog>
 
+  <dialog id="photoViewerDialog" class="photo-viewer-dialog">
+    <div class="photo-viewer-card">
+      <button id="closePhotoViewer" class="photo-viewer-close" type="button" aria-label="写真を閉じる">×</button>
+      <img id="photoViewerImg" src="" alt="鳥写真">
+      <p id="photoViewerCaption" class="photo-viewer-caption"></p>
+    </div>
+  </dialog>
+
   <div id="mascotLayer" aria-hidden="false">
     <div id="mascotBubble" class="mascot-bubble hidden"></div>
     <button id="mascotTomokichi" class="mascot mascot-tomokichi" type="button" aria-label="ともきちキャラ"></button>
     <button id="mascotPonchan" class="mascot mascot-ponchan" type="button" aria-label="ぽんちゃんキャラ"></button>
   </div>
 
-  <script src="app.js?v=20260623v8"></script>
+  <script src="app.js?v=20260624v9"></script>
 </body>
 </html>

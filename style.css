@@ -34,3 +34,15 @@
 .bird-user-photo img{display:block;width:100%;height:128px;object-fit:cover;border-radius:18px;background:linear-gradient(135deg,#eef6ff,#f8fafc);border:1px solid var(--line);}
 .photo-delete{position:absolute;right:6px;top:6px;width:28px;height:28px;border:0;border-radius:999px;background:rgba(0,0,0,.62);color:white;font-weight:900;}
 @media(max-width:420px){.bird-fab{bottom:154px;width:60px;height:60px;font-size:18px}.bird-user-photo img{height:170px}}
+
+
+/* V9: bird photo full viewer */
+.bird-photo-thumb{cursor:zoom-in;}
+.photo-viewer-dialog{padding:0;background:transparent;border:0;max-width:none;max-height:none;}
+.photo-viewer-dialog::backdrop{background:rgba(15,23,42,.82);backdrop-filter:blur(6px);}
+.photo-viewer-card{position:relative;width:min(96vw,980px);height:min(88vh,760px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:46px 14px 18px;background:rgba(255,255,255,.96);border-radius:24px;box-shadow:0 24px 80px rgba(0,0,0,.35);}
+.photo-viewer-card img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;border-radius:18px;background:#f8fafc;}
+.photo-viewer-close{position:absolute;right:14px;top:12px;width:38px;height:38px;border:0;border-radius:999px;background:#111827;color:#fff;font-size:26px;font-weight:900;line-height:1;}
+.photo-viewer-caption{margin:10px 0 0;color:var(--muted);font-size:13px;text-align:center;}
+@media(prefers-color-scheme:dark){.photo-viewer-card{background:#111827}.photo-viewer-card img{background:#0b1220}}
+@media(max-width:420px){.photo-viewer-card{width:94vw;height:84vh;border-radius:20px;padding:44px 10px 14px}.photo-viewer-close{right:10px;top:8px}}

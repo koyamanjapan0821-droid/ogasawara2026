@@ -1,4 +1,4 @@
-# 小笠原2026 PWA V8
+# 小笠原2026 PWA V9 verified
 
 ## 内容
 - index.html
@@ -7,19 +7,17 @@
 - manifest.json
 - service-worker.js
 
+## V9 修正内容
+- 現在アップロードされた app(3).js / index(3).html / style(2).css を基準に作成
+- 鳥図鑑の写真サムネイルをタップで拡大表示
+- 拡大表示は object-fit: contain で全体表示
+- 閉じるボタン、背景タップ、Escで閉じる
+- 既存の鳥追加、写真追加、写真削除、キャラ、レアこうたろう設定を維持
+- Service Worker と index のキャッシュバスターを V9 に更新
+
 ## 反映方法
 GitHub Pages のリポジトリ直下に上書きアップロードしてください。
 鳥画像とキャラクター画像はZIPに含めていません。既存どおり以下へ直接配置してください。
 
 - assets/birds/
 - assets/characters/
-
-## V8 修正内容
-- レアこうたろう出現判定を再整理
-- レアこうたろう表示時の hidden 解除、表示タイマー、タップ時のタイマー競合を修正
-- 通常キャラのタップ後3秒切替を安定化
-- Service Worker のキャッシュ名を V8 に更新
-- index.html の app.js / style.css にキャッシュバスターを付与
-
-## 注意
-iPhone のホーム画面PWAは古いキャッシュが残る場合があります。更新後にSafariで一度URLを開いてリロードしてからホーム画面版を確認してください。
