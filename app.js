@@ -58,10 +58,10 @@ const APP = {
   ].map((s,i)=>({id:'s'+i,name:s[0],category:s[1],memo:s[2],query:s[3]})),
   checklist: ['着替え','野鳥の会ブーツ','双眼鏡','防水スマホケース','フロートストラップ','水着','酔い止め薬','現金','充電器','充電ケーブル','Apple Watch','乗船チケット印刷','保険証／マイナンバーカード','雨具','マリンシューズ','サングラス','日焼け止め','サンダル','ボールペン','弁当・飲み物（ツアー日）','タオル','酔い止め予備'],
   reservations: [
-    {title:'おがさわら丸 往路', body:'2026/08/11 東京 11:00発 → 父島。最終チェックイン 10:40。2等和室。予約番号 5412605296。'},
-    {title:'おがさわら丸 復路', body:'2026/08/15 父島 15:30発 → 東京。最終チェックイン 15:10。2等寝台。予約番号 5412605646。'},
-    {title:'宿泊｜コンドミニアム ポートロイド', body:'8/12チェックイン、8/15チェックアウト。3泊4日、203号室、素泊り66,000円。しまぽ通貨・クレジットカード・現金可。'},
-    {title:'レンタカー｜アイランダーレンタカー', body:'8/12入港後12:00〜8/15 18:00まで。10,000円/日×4日＝40,000円。'},
+    {title:'おがさわら丸 往路', tel:'03-6381-5499', telLabel:'小笠原海運 本社へ電話', body:'2026/08/11 東京 11:00発 → 父島。最終チェックイン 10:40。2等和室。予約番号 5412605296。'},
+    {title:'おがさわら丸 復路', tel:'04998-2-2111', telLabel:'小笠原海運 父島営業所へ電話', body:'2026/08/15 父島 15:30発 → 東京。最終チェックイン 15:10。2等寝台。予約番号 5412605646。'},
+    {title:'宿泊｜コンドミニアム ポートロイド', tel:'04998-2-3733', telLabel:'ポートロイドへ電話', body:'8/12チェックイン、8/15チェックアウト。3泊4日、203号室、素泊り66,000円。しまぽ通貨・クレジットカード・現金可。'},
+    {title:'レンタカー｜アイランダーレンタカー', tel:'080-2945-5977', telLabel:'アイランダーレンタカーへ電話', body:'8/12入港後12:00〜8/15 18:00まで。10,000円/日×4日＝40,000円。'},
     {title:'南島ツアー', body:'8/13 08:15 ポートロイド前集合、15:00港解散。弁当・飲み物・タオル・水着着用・酔い止め・日焼け対策。'},
     {title:'費用メモ', body:'宿66,000円 / レンタカー40,000円 / 船代支払済み / しまぽ通貨活用予定。'}
   ],
@@ -343,7 +343,8 @@ function addChecklistItem(){
 $('addChecklistBtn').onclick=addChecklistItem;
 $('newChecklistItem').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addChecklistItem();}});
 $('resetChecklist').onclick=()=>{if(!confirm('チェック状態だけリセットしますか？ 持ち物リストは残ります。'))return;checklistChecks={};store.set('checklistChecksV10',checklistChecks);renderChecklist();};
-function renderReservations(){$('reservationList').innerHTML=APP.reservations.map(r=>`<article class="card"><p class="label">予約情報</p><h3>${escapeHtml(r.title)}</h3><p>${escapeHtml(r.body)}</p></article>`).join('')}
+function telHref(tel){return 'tel:'+String(tel||'').replace(/[^0-9+]/g,'')}
+function renderReservations(){$('reservationList').innerHTML=APP.reservations.map(r=>`<article class="card"><p class="label">予約情報</p><h3>${escapeHtml(r.title)}</h3><p>${escapeHtml(r.body)}</p>${r.tel?`<div class="reservation-actions"><a class="link-btn phone-btn" href="${telHref(r.tel)}">📞 ${escapeHtml(r.telLabel||'電話する')}<small>${escapeHtml(r.tel)}</small></a></div>`:''}</article>`).join('')}
 function renderMemos(){$('memoList').innerHTML=memos.slice().reverse().map((m,idx)=>{const realIndex=memos.length-1-idx;return `<article class="card"><p class="label">${m.date}</p><p>${escapeHtml(m.text).replace(/\n/g,'<br>')}</p>${m.photo?`<img class="memo-photo" src="${m.photo}" alt="旅行メモ写真">`:''}<div class="memo-actions"><button class="danger" data-delmemo="${realIndex}">削除</button></div></article>`}).join('')||'<p class="muted">まだメモはありません。</p>';document.querySelectorAll('[data-delmemo]').forEach(b=>b.onclick=()=>{memos.splice(Number(b.dataset.delmemo),1);store.set('memos',memos);renderMemos();});}
 $('saveMemo').onclick=async()=>{const text=$('memoText').value.trim();if(!text)return;let photo='';const file=$('memoPhoto').files[0];if(file) photo=await compressImage(file);memos.push({date:$('memoDate').value,text,photo});try{store.set('memos',memos)}catch(e){alert('写真が大きすぎて保存できませんでした。写真なしで保存します。');memos[memos.length-1].photo='';store.set('memos',memos)}$('memoText').value='';$('memoPhoto').value='';renderMemos();};
 function compressImage(file){return new Promise((resolve)=>{const img=new Image();const reader=new FileReader();reader.onload=()=>{img.onload=()=>{const max=1200;let w=img.width,h=img.height;if(Math.max(w,h)>max){if(w>h){h=Math.round(h*max/w);w=max}else{w=Math.round(w*max/h);h=max}}const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);resolve(canvas.toDataURL('image/jpeg',0.72));};img.src=reader.result;};reader.readAsDataURL(file);});}

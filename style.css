@@ -85,3 +85,7 @@
 #itineraryEventForm .label{display:block;margin:10px 0 4px;}
 #editEventMemo{min-height:96px;}
 @media(max-width:420px){.itinerary-event{grid-template-columns:24px 54px 1fr}.drag-handle{font-size:14px}}
+
+
+/* V13: reservation phone buttons */
+.reservation-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.phone-btn{background:#eefaf2;color:#14833b}.phone-btn small{display:inline-block;margin-left:8px;color:inherit;opacity:.78;font-weight:800}

@@ -1,10 +1,11 @@
-const CACHE_NAME = 'ogasawara2026-v12-20260624-itinerary-drag';
+const CACHE_NAME = 'ogasawara2026-v13-20260624-icon-tel';
 const APP_SHELL = [
   './',
   './index.html',
-  './style.css?v=20260624v12',
-  './app.js?v=20260624v12',
-  './manifest.json'
+  './style.css?v=20260624v13',
+  './app.js?v=20260624v13',
+  './manifest.json',
+  './icon-512.png'
 ];
 
 self.addEventListener('install', event => {
