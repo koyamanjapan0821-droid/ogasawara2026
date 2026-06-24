@@ -46,3 +46,21 @@
 .photo-viewer-caption{margin:10px 0 0;color:var(--muted);font-size:13px;text-align:center;}
 @media(prefers-color-scheme:dark){.photo-viewer-card{background:#111827}.photo-viewer-card img{background:#0b1220}}
 @media(max-width:420px){.photo-viewer-card{width:94vw;height:84vh;border-radius:20px;padding:44px 10px 14px}.photo-viewer-close{right:10px;top:8px}}
+
+
+/* V10: editable checklist */
+.checklist-add-card{margin-bottom:12px}
+.check-add-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.check-add-row .primary{margin:0;white-space:nowrap}
+.checklist-edit-row{justify-content:space-between;align-items:center}
+.check-main{display:flex;align-items:center;gap:12px;min-width:0;flex:1}
+.check-main span{word-break:break-word}
+.check-actions{display:flex;gap:6px;flex-shrink:0}
+.mini-btn{border:0;border-radius:999px;padding:8px 10px;background:#eef2f7;color:#172033;font-weight:800;font-size:12px}
+.danger-mini{background:#fff0f0;color:var(--red)}
+@media(max-width:420px){
+  .check-add-row{grid-template-columns:1fr}
+  .checklist-edit-row{align-items:flex-start}
+  .check-actions{flex-direction:column}
+  .mini-btn{padding:7px 9px}
+}

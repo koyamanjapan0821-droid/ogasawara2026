@@ -83,6 +83,17 @@ const APP = {
 const $ = id => document.getElementById(id);
 const store = {get:(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d)), set:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
 let customSpots = store.get('customSpots', []), visited = store.get('visited', {}), favorites = store.get('favorites', {}), checks = store.get('checks', {}), birdChecks = store.get('birdChecks', {}), memos = store.get('memos', []), customBirds = store.get('customBirds', []), birdUserPhotos = store.get('birdUserPhotos', {});
+let checklistItems = store.get('checklistItemsV10', null);
+let checklistChecks = store.get('checklistChecksV10', null);
+if(!Array.isArray(checklistItems)){
+  checklistItems = APP.checklist.map((text,i)=>({id:'base_'+i, text}));
+  store.set('checklistItemsV10', checklistItems);
+}
+if(!checklistChecks || typeof checklistChecks !== 'object'){
+  checklistChecks = {};
+  checklistItems.forEach((item,i)=>{ if(checks[i]) checklistChecks[item.id]=true; });
+  store.set('checklistChecksV10', checklistChecks);
+}
 function switchTab(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===id));document.querySelectorAll('.tabbar button').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));scrollTo({top:0,behavior:'smooth'});}
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));document.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>switchTab(b.dataset.jump));
 function updateCountdown(){const now=new Date();const diff=APP.startDate-now;if(diff<=0){$('countdown').textContent='出発済';return}const d=Math.ceil(diff/86400000);$('countdown').textContent=`あと${d}日`;}
@@ -143,9 +154,27 @@ $('birdSearch').oninput=renderBirds;$('birdFilter').onchange=renderBirds;
 $('addBirdBtn').onclick=()=>$('birdDialog').showModal();
 $('cancelBirdBtn').onclick=()=>{$('birdForm').reset();$('birdDialog').close();};
 $('birdForm').onsubmit=async(e)=>{e.preventDefault();const name=$('newBirdName').value.trim();if(!name)return;const id='cb'+Date.now();let photos=[];const file=$('newBirdPhoto').files[0];if(file)photos=[await compressImage(file)];const b={id,name,type:$('newBirdType').value,difficulty:$('newBirdDifficulty').value.trim()||'未設定',places:$('newBirdPlace').value.trim()||'未設定',points:$('newBirdPoint').value.trim()||'旅行中に追加した鳥',voice:'',memo:$('newBirdMemo').value.trim(),photos:[]};customBirds.push(b);if(photos.length)birdUserPhotos[id]=photos;try{store.set('customBirds',customBirds);store.set('birdUserPhotos',birdUserPhotos)}catch(err){customBirds=customBirds.filter(x=>x.id!==id);delete birdUserPhotos[id];alert('写真容量が大きすぎて保存できませんでした。写真なし、または小さい画像で登録してください。');return;}$('birdForm').reset();$('birdDialog').close();renderBirds();renderBirdProgress();};
-function renderChecklist(){$('checklistItems').innerHTML=APP.checklist.map((item,i)=>`<label class="check-row"><input type="checkbox" data-check="${i}" ${checks[i]?'checked':''}><span>${item}</span></label>`).join('');document.querySelectorAll('[data-check]').forEach(c=>c.onchange=()=>{checks[c.dataset.check]=c.checked;store.set('checks',checks);renderCheckProgress();});renderCheckProgress();}
-function renderCheckProgress(){const total=APP.checklist.length;const done=Object.values(checks).filter(Boolean).length;const pct=total?Math.round(done/total*100):0;$('checkProgress').innerHTML=`<b>準備 ${done}/${total}</b><div class="bar"><i style="width:${pct}%"></i></div><p class="muted">${pct}% 完了</p>`;}
-$('resetChecklist').onclick=()=>{checks={};store.set('checks',checks);renderChecklist();};
+function renderChecklist(){
+  $('checklistItems').innerHTML=checklistItems.map(item=>`<div class="check-row checklist-edit-row"><label class="check-main"><input type="checkbox" data-check="${item.id}" ${checklistChecks[item.id]?'checked':''}><span>${escapeHtml(item.text)}</span></label><div class="check-actions"><button class="mini-btn" data-editcheck="${item.id}" type="button">編集</button><button class="mini-btn danger-mini" data-delcheck="${item.id}" type="button">削除</button></div></div>`).join('')||'<p class="muted">持ち物がありません。＋から追加できます。</p>';
+  document.querySelectorAll('[data-check]').forEach(c=>c.onchange=()=>{checklistChecks[c.dataset.check]=c.checked;store.set('checklistChecksV10',checklistChecks);renderCheckProgress();});
+  document.querySelectorAll('[data-editcheck]').forEach(b=>b.onclick=()=>{const item=checklistItems.find(x=>x.id===b.dataset.editcheck);if(!item)return;const next=prompt('持ち物を編集', item.text);if(next===null)return;const text=next.trim();if(!text)return;item.text=text;store.set('checklistItemsV10',checklistItems);renderChecklist();});
+  document.querySelectorAll('[data-delcheck]').forEach(b=>b.onclick=()=>{const item=checklistItems.find(x=>x.id===b.dataset.delcheck);if(!item)return;if(!confirm(`「${item.text}」を削除しますか？`))return;checklistItems=checklistItems.filter(x=>x.id!==item.id);delete checklistChecks[item.id];store.set('checklistItemsV10',checklistItems);store.set('checklistChecksV10',checklistChecks);renderChecklist();});
+  renderCheckProgress();
+}
+function renderCheckProgress(){const total=checklistItems.length;const done=checklistItems.filter(item=>checklistChecks[item.id]).length;const pct=total?Math.round(done/total*100):0;$('checkProgress').innerHTML=`<b>準備 ${done}/${total}</b><div class="bar"><i style="width:${pct}%"></i></div><p class="muted">${pct}% 完了</p>`;}
+function addChecklistItem(){
+  const input=$('newChecklistItem');
+  if(!input)return;
+  const text=input.value.trim();
+  if(!text)return;
+  checklistItems.push({id:'ci_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), text});
+  store.set('checklistItemsV10',checklistItems);
+  input.value='';
+  renderChecklist();
+}
+$('addChecklistBtn').onclick=addChecklistItem;
+$('newChecklistItem').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addChecklistItem();}});
+$('resetChecklist').onclick=()=>{if(!confirm('チェック状態だけリセットしますか？ 持ち物リストは残ります。'))return;checklistChecks={};store.set('checklistChecksV10',checklistChecks);renderChecklist();};
 function renderReservations(){$('reservationList').innerHTML=APP.reservations.map(r=>`<article class="card"><p class="label">予約情報</p><h3>${escapeHtml(r.title)}</h3><p>${escapeHtml(r.body)}</p></article>`).join('')}
 function renderMemos(){$('memoList').innerHTML=memos.slice().reverse().map((m,idx)=>{const realIndex=memos.length-1-idx;return `<article class="card"><p class="label">${m.date}</p><p>${escapeHtml(m.text).replace(/\n/g,'<br>')}</p>${m.photo?`<img class="memo-photo" src="${m.photo}" alt="旅行メモ写真">`:''}<div class="memo-actions"><button class="danger" data-delmemo="${realIndex}">削除</button></div></article>`}).join('')||'<p class="muted">まだメモはありません。</p>';document.querySelectorAll('[data-delmemo]').forEach(b=>b.onclick=()=>{memos.splice(Number(b.dataset.delmemo),1);store.set('memos',memos);renderMemos();});}
 $('saveMemo').onclick=async()=>{const text=$('memoText').value.trim();if(!text)return;let photo='';const file=$('memoPhoto').files[0];if(file) photo=await compressImage(file);memos.push({date:$('memoDate').value,text,photo});try{store.set('memos',memos)}catch(e){alert('写真が大きすぎて保存できませんでした。写真なしで保存します。');memos[memos.length-1].photo='';store.set('memos',memos)}$('memoText').value='';$('memoPhoto').value='';renderMemos();};

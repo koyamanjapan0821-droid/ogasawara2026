@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="小笠原2026">
   <title>小笠原2026</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=20260624v9">
+  <link rel="stylesheet" href="style.css?v=20260624v10">
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -87,6 +87,13 @@
       <section id="checklist" class="screen">
         <div class="section-title"><h2>Checklist</h2><span>持ってくもの</span></div>
         <div id="checkProgress" class="progress-card"></div>
+        <article class="card checklist-add-card">
+          <label class="label" for="newChecklistItem">持ち物を追加</label>
+          <div class="check-add-row">
+            <input id="newChecklistItem" type="text" placeholder="例：赤色ライト">
+            <button id="addChecklistBtn" class="primary" type="button">追加</button>
+          </div>
+        </article>
         <div id="checklistItems" class="checklist"></div>
         <button id="resetChecklist" class="secondary full">チェックをリセット</button>
       </section>
@@ -168,6 +175,6 @@
     <button id="mascotPonchan" class="mascot mascot-ponchan" type="button" aria-label="ぽんちゃんキャラ"></button>
   </div>
 
-  <script src="app.js?v=20260624v9"></script>
+  <script src="app.js?v=20260624v10"></script>
 </body>
 </html>
