@@ -64,3 +64,14 @@
   .check-actions{flex-direction:column}
   .mini-btn{padding:7px 9px}
 }
+
+
+/* V11: itinerary edit support */
+.itinerary-add-card{padding:12px;margin-top:4px;}
+.itinerary-day-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;}
+.itinerary-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.day-actions{justify-content:flex-end;min-width:190px;}
+.itinerary-event{align-items:start;}
+.mini-btn{border:0;border-radius:999px;padding:7px 10px;background:#eef2f7;color:#172033;font-size:12px;font-weight:900;line-height:1;}
+.danger-mini{background:#fff0f0;color:var(--red);}
+@media(max-width:420px){.itinerary-day-head{flex-direction:column}.day-actions{justify-content:flex-start;min-width:0}.itinerary-actions{gap:5px}.mini-btn{font-size:11px;padding:7px 9px}}

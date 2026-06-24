@@ -1,9 +1,9 @@
-const CACHE_NAME = 'ogasawara2026-v10-20260624-checklist';
+const CACHE_NAME = 'ogasawara2026-v11-20260624-itinerary';
 const APP_SHELL = [
   './',
   './index.html',
-  './style.css?v=20260624v10',
-  './app.js?v=20260624v10',
+  './style.css?v=20260624v11',
+  './app.js?v=20260624v11',
   './manifest.json'
 ];
 

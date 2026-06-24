@@ -94,10 +94,106 @@ if(!checklistChecks || typeof checklistChecks !== 'object'){
   checklistItems.forEach((item,i)=>{ if(checks[i]) checklistChecks[item.id]=true; });
   store.set('checklistChecksV10', checklistChecks);
 }
+
+let itineraryItems = store.get('itineraryItemsV11', null);
+function cloneDefaultItinerary(){
+  return APP.itinerary.map((day,di)=>({
+    id:'day_'+di,
+    date:day.date,
+    title:day.title,
+    events:(day.events||[]).map((e,ei)=>({id:'ev_'+di+'_'+ei,time:e[0],title:e[1],memo:e[2]}))
+  }));
+}
+if(!Array.isArray(itineraryItems)){
+  itineraryItems = cloneDefaultItinerary();
+  store.set('itineraryItemsV11', itineraryItems);
+}
+function saveItinerary(){store.set('itineraryItemsV11', itineraryItems);}
 function switchTab(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===id));document.querySelectorAll('.tabbar button').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));scrollTo({top:0,behavior:'smooth'});}
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));document.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>switchTab(b.dataset.jump));
 function updateCountdown(){const now=new Date();const diff=APP.startDate-now;if(diff<=0){$('countdown').textContent='出発済';return}const d=Math.ceil(diff/86400000);$('countdown').textContent=`あと${d}日`;}
-function renderItinerary(){const wrap=$('itineraryList');wrap.innerHTML=APP.itinerary.map(day=>`<article class="card day-card"><h3>${day.title}</h3><p class="muted">${day.date}</p><div class="timeline">${day.events.map(e=>`<div class="event"><div class="time">${e[0]}</div><div><div class="event-title">${e[1]}</div><div class="muted">${e[2]}</div></div></div>`).join('')}</div></article>`).join(''); const today=APP.itinerary.find(d=>new Date(d.date+'T23:59:59+09:00')>=new Date())||APP.itinerary[0]; $('nextPlan').innerHTML=today.events.slice(0,3).map(e=>`<div class="event"><div class="time">${e[0]}</div><div><div class="event-title">${e[1]}</div><div class="muted">${e[2]}</div></div></div>`).join('');}
+function itineraryEventHtml(e, dayId){
+  return `<div class="event itinerary-event"><div class="time">${escapeHtml(e.time||'')}</div><div><div class="event-title">${escapeHtml(e.title||'')}</div><div class="muted">${escapeHtml(e.memo||'')}</div><div class="itinerary-actions"><button class="mini-btn" data-editevent="${dayId}|${e.id}" type="button">編集</button><button class="mini-btn danger-mini" data-delevent="${dayId}|${e.id}" type="button">削除</button></div></div></div>`;
+}
+function renderItinerary(){
+  const wrap=$('itineraryList');
+  wrap.innerHTML=itineraryItems.map(day=>`<article class="card day-card"><div class="itinerary-day-head"><div><h3>${escapeHtml(day.title)}</h3><p class="muted">${escapeHtml(day.date)}</p></div><div class="itinerary-actions day-actions"><button class="mini-btn" data-editday="${day.id}" type="button">日程編集</button><button class="mini-btn" data-addevent="${day.id}" type="button">予定追加</button><button class="mini-btn danger-mini" data-delday="${day.id}" type="button">削除</button></div></div><div class="timeline">${(day.events||[]).map(e=>itineraryEventHtml(e,day.id)).join('')||'<p class="muted">予定なし。予定追加から登録できます。</p>'}</div></article>`).join('')||'<p class="muted">日程がありません。日程を追加できます。</p>';
+  const today=itineraryItems.find(d=>new Date(d.date+'T23:59:59+09:00')>=new Date())||itineraryItems[0];
+  $('nextPlan').innerHTML=today ? (today.events||[]).slice(0,3).map(e=>`<div class="event"><div class="time">${escapeHtml(e.time||'')}</div><div><div class="event-title">${escapeHtml(e.title||'')}</div><div class="muted">${escapeHtml(e.memo||'')}</div></div></div>`).join('') : '<p class="muted">予定なし</p>';
+  setupItineraryActions();
+}
+function addItineraryDay(){
+  const date=prompt('日付を入力（例：2026-08-17）','2026-08-17');
+  if(date===null) return;
+  const cleanDate=date.trim();
+  if(!cleanDate) return;
+  const title=prompt('日程タイトルを入力（例：8/17 Mon｜予備日）', cleanDate);
+  if(title===null) return;
+  const cleanTitle=title.trim();
+  if(!cleanTitle) return;
+  itineraryItems.push({id:'day_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),date:cleanDate,title:cleanTitle,events:[]});
+  saveItinerary();
+  renderItinerary();
+}
+function editItineraryDay(dayId){
+  const day=itineraryItems.find(d=>d.id===dayId); if(!day) return;
+  const date=prompt('日付を編集', day.date);
+  if(date===null) return;
+  const title=prompt('日程タイトルを編集', day.title);
+  if(title===null) return;
+  const cleanDate=date.trim(), cleanTitle=title.trim();
+  if(!cleanDate||!cleanTitle) return;
+  day.date=cleanDate; day.title=cleanTitle;
+  saveItinerary(); renderItinerary();
+}
+function deleteItineraryDay(dayId){
+  const day=itineraryItems.find(d=>d.id===dayId); if(!day) return;
+  if(!confirm(`「${day.title}」を削除しますか？`)) return;
+  itineraryItems=itineraryItems.filter(d=>d.id!==dayId);
+  saveItinerary(); renderItinerary();
+}
+function addItineraryEvent(dayId){
+  const day=itineraryItems.find(d=>d.id===dayId); if(!day) return;
+  const time=prompt('時間を入力（例：午前 / 10:40）','');
+  if(time===null) return;
+  const title=prompt('予定名を入力','');
+  if(title===null) return;
+  const memo=prompt('メモを入力','') ?? '';
+  const cleanTitle=title.trim();
+  if(!cleanTitle) return;
+  day.events=day.events||[];
+  day.events.push({id:'ev_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),time:time.trim(),title:cleanTitle,memo:memo.trim()});
+  saveItinerary(); renderItinerary();
+}
+function editItineraryEvent(dayId,eventId){
+  const day=itineraryItems.find(d=>d.id===dayId); if(!day) return;
+  const ev=(day.events||[]).find(e=>e.id===eventId); if(!ev) return;
+  const time=prompt('時間を編集', ev.time||'');
+  if(time===null) return;
+  const title=prompt('予定名を編集', ev.title||'');
+  if(title===null) return;
+  const memo=prompt('メモを編集', ev.memo||'');
+  if(memo===null) return;
+  const cleanTitle=title.trim();
+  if(!cleanTitle) return;
+  ev.time=time.trim(); ev.title=cleanTitle; ev.memo=memo.trim();
+  saveItinerary(); renderItinerary();
+}
+function deleteItineraryEvent(dayId,eventId){
+  const day=itineraryItems.find(d=>d.id===dayId); if(!day) return;
+  const ev=(day.events||[]).find(e=>e.id===eventId); if(!ev) return;
+  if(!confirm(`「${ev.title}」を削除しますか？`)) return;
+  day.events=(day.events||[]).filter(e=>e.id!==eventId);
+  saveItinerary(); renderItinerary();
+}
+function setupItineraryActions(){
+  document.querySelectorAll('[data-editday]').forEach(b=>b.onclick=()=>editItineraryDay(b.dataset.editday));
+  document.querySelectorAll('[data-delday]').forEach(b=>b.onclick=()=>deleteItineraryDay(b.dataset.delday));
+  document.querySelectorAll('[data-addevent]').forEach(b=>b.onclick=()=>addItineraryEvent(b.dataset.addevent));
+  document.querySelectorAll('[data-editevent]').forEach(b=>b.onclick=()=>{const [dayId,eventId]=b.dataset.editevent.split('|');editItineraryEvent(dayId,eventId);});
+  document.querySelectorAll('[data-delevent]').forEach(b=>b.onclick=()=>{const [dayId,eventId]=b.dataset.delevent.split('|');deleteItineraryEvent(dayId,eventId);});
+}
+$('addItineraryDayBtn').onclick=addItineraryDay;
 function searchMapUrl(s){return s.url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.query || s.name + ' 父島')}`}
 function navMapUrl(s){return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(s.query || s.name + ' 父島')}`}
 function renderSpots(){const q=$('spotSearch').value.toLowerCase();const f=$('spotFilter').value;const all=[...APP.spots,...customSpots];const list=all.filter(s=>((f==='all'||s.category===f)||(f==='favorite'&&favorites[s.id]))&&(`${s.name} ${s.memo}`.toLowerCase().includes(q)));$('spotList').innerHTML=list.map(s=>`<article class="card spot"><div><h3>${favorites[s.id]?'⭐ ':''}${escapeHtml(s.name)}</h3><p>${escapeHtml(s.memo||'')}</p><span class="tag">${labelCat(s.category)}</span>${s.category==='custom'?'<span class="tag">旅行中追加</span>':''}${favorites[s.id]?'<span class="tag">お気に入り</span>':''}<div class="spot-actions"><a class="link-btn" href="${searchMapUrl(s)}" target="_blank" rel="noopener">Mapsで開く</a><a class="link-btn nav-btn" href="${navMapUrl(s)}" target="_blank" rel="noopener">ナビ</a><button class="visit-btn ${favorites[s.id]?'done':''}" data-fav="${s.id}">${favorites[s.id]?'★お気に入り':'☆お気に入り'}</button><button class="visit-btn ${visited[s.id]?'done':''}" data-visit="${s.id}">${visited[s.id]?'訪問済':'未訪問'}</button></div></div><div>${visited[s.id]?'✅':favorites[s.id]?'⭐':'📍'}</div></article>`).join('')||'<p class="muted">該当スポットなし</p>';document.querySelectorAll('[data-visit]').forEach(b=>b.onclick=()=>{visited[b.dataset.visit]=!visited[b.dataset.visit];store.set('visited',visited);renderSpots();renderVisitRate();});document.querySelectorAll('[data-fav]').forEach(b=>b.onclick=()=>{favorites[b.dataset.fav]=!favorites[b.dataset.fav];store.set('favorites',favorites);renderSpots();});}
