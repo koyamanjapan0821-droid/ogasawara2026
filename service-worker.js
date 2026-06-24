@@ -1,9 +1,9 @@
-const CACHE_NAME = 'ogasawara2026-v13-20260624-icon-tel';
+const CACHE_NAME = 'ogasawara2026-v13-1-20260624-icon-tel';
 const APP_SHELL = [
   './',
   './index.html',
-  './style.css?v=20260624v13',
-  './app.js?v=20260624v13',
+  './style.css?v=20260624v131',
+  './app.js?v=20260624v131',
   './manifest.json',
   './icon-512.png'
 ];
