@@ -1,30 +1,3 @@
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js';
-import { getFirestore, doc, setDoc, collection, onSnapshot, serverTimestamp, enableIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
-
-const firebaseConfig = {
-  apiKey: 'AIzaSyAL9Oyl-YcIlg4htRfyXTs1kA1KL5s2OTM',
-  authDomain: 'ogasawara2026.firebaseapp.com',
-  projectId: 'ogasawara2026',
-  storageBucket: 'ogasawara2026.firebasestorage.app',
-  messagingSenderId: '891438401735',
-  appId: '1:891438401735:web:689e6d14b53c97445996e2',
-  measurementId: 'G-B1TGCYYPXD'
-};
-const FIREBASE_CLIENT_ID = (()=>{
-  let id = localStorage.getItem('ogasawaraFirebaseClientId');
-  if(!id){ id = 'client_' + Date.now() + '_' + Math.random().toString(36).slice(2,10); localStorage.setItem('ogasawaraFirebaseClientId', id); }
-  return id;
-})();
-const firebaseApp = initializeApp(firebaseConfig);
-const firestoreDb = getFirestore(firebaseApp);
-enableIndexedDbPersistence(firestoreDb).catch(()=>{});
-const FIREBASE_ROOT = 'ogasawara2026';
-const FIREBASE_DOC = 'shared';
-const FIREBASE_SECTION_KEYS = new Set(['customSpots','visited','favorites','checks','birdChecks','memos','customBirds','birdUserPhotos','checklistItemsV10','checklistChecksV10','itineraryItemsV11']);
-let firebaseRemoteApplying = false;
-let firebaseInitialSnapshotSeen = false;
-let firebaseRenderTimer = null;
-
 const APP = {
   startDate: new Date('2026-08-11T11:00:00+09:00'),
   itinerary: [
@@ -108,11 +81,14 @@ const APP = {
   ]
 };
 const $ = id => document.getElementById(id);
+var syncReady=false, syncDocRef=null, syncSaveTimer=null, syncPending=false, syncApplyingRemote=false, syncLastPushedAt=0;
+var syncDeviceId=localStorage.getItem('ogasawara2026DeviceId') || ('dev_'+Date.now()+'_'+Math.random().toString(36).slice(2,9));
+localStorage.setItem('ogasawara2026DeviceId', syncDeviceId);
 const store = {
   get:(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d)),
   set:(k,v)=>{
     localStorage.setItem(k,JSON.stringify(v));
-    if(!firebaseRemoteApplying && FIREBASE_SECTION_KEYS.has(k) && typeof firebaseSaveSection === 'function') firebaseSaveSection(k,v);
+    if(!syncApplyingRemote) scheduleCloudSave('store:'+k);
   }
 };
 let customSpots = store.get('customSpots', []), visited = store.get('visited', {}), favorites = store.get('favorites', {}), checks = store.get('checks', {}), birdChecks = store.get('birdChecks', {}), memos = store.get('memos', []), customBirds = store.get('customBirds', []), birdUserPhotos = store.get('birdUserPhotos', {});
@@ -143,102 +119,157 @@ if(!Array.isArray(itineraryItems)){
 }
 function saveItinerary(){store.set('itineraryItemsV11', itineraryItems);}
 
-function firebaseSectionValue(key){
+/* V15: Firebase official sync layer */
+function ensureSyncBadge(){
+  let el=$('syncStatusBadge');
+  if(el) return el;
+  el=document.createElement('div');
+  el.id='syncStatusBadge';
+  el.className='sync-status-badge sync-local';
+  el.textContent='同期準備中';
+  document.body.appendChild(el);
+  return el;
+}
+function setSyncStatus(text, cls='sync-local'){
+  const el=ensureSyncBadge();
+  el.textContent=text;
+  el.className='sync-status-badge '+cls;
+  console.log('[OGASAWARA SYNC]', text);
+}
+function getFullState(){
   return {
-    customSpots, visited, favorites, checks, birdChecks, memos, customBirds, birdUserPhotos,
-    checklistItemsV10: checklistItems,
-    checklistChecksV10: checklistChecks,
-    itineraryItemsV11: itineraryItems
-  }[key];
+    customSpots, visited, favorites, checks,
+    birdChecks, memos, customBirds, birdUserPhotos,
+    checklistItems, checklistChecks, itineraryItems,
+    lastSavedAt: new Date().toISOString()
+  };
 }
-function firebaseApplySection(key, value){
-  if(!FIREBASE_SECTION_KEYS.has(key)) return;
-  firebaseRemoteApplying = true;
+function persistFullStateLocal(state){
+  const put=(k,v)=>localStorage.setItem(k, JSON.stringify(v));
+  put('customSpots', customSpots);
+  put('visited', visited);
+  put('favorites', favorites);
+  put('checks', checks);
+  put('birdChecks', birdChecks);
+  put('memos', memos);
+  put('customBirds', customBirds);
+  put('birdUserPhotos', birdUserPhotos);
+  put('checklistItemsV10', checklistItems);
+  put('checklistChecksV10', checklistChecks);
+  put('itineraryItemsV11', itineraryItems);
+}
+function applyFullState(state){
+  if(!state || typeof state !== 'object') return;
+  syncApplyingRemote=true;
   try{
-    localStorage.setItem(key, JSON.stringify(value));
-    if(key==='customSpots') customSpots = Array.isArray(value) ? value : [];
-    if(key==='visited') visited = value && typeof value==='object' ? value : {};
-    if(key==='favorites') favorites = value && typeof value==='object' ? value : {};
-    if(key==='checks') checks = value && typeof value==='object' ? value : {};
-    if(key==='birdChecks') birdChecks = value && typeof value==='object' ? value : {};
-    if(key==='memos') memos = Array.isArray(value) ? value : [];
-    if(key==='customBirds') customBirds = Array.isArray(value) ? value : [];
-    if(key==='birdUserPhotos') birdUserPhotos = value && typeof value==='object' ? value : {};
-    if(key==='checklistItemsV10') checklistItems = Array.isArray(value) ? value : checklistItems;
-    if(key==='checklistChecksV10') checklistChecks = value && typeof value==='object' ? value : {};
-    if(key==='itineraryItemsV11') itineraryItems = Array.isArray(value) ? value : itineraryItems;
+    if(Array.isArray(state.customSpots)) customSpots=state.customSpots;
+    if(state.visited && typeof state.visited==='object') visited=state.visited;
+    if(state.favorites && typeof state.favorites==='object') favorites=state.favorites;
+    if(state.checks && typeof state.checks==='object') checks=state.checks;
+    if(state.birdChecks && typeof state.birdChecks==='object') birdChecks=state.birdChecks;
+    if(Array.isArray(state.memos)) memos=state.memos;
+    if(Array.isArray(state.customBirds)) customBirds=state.customBirds;
+    if(state.birdUserPhotos && typeof state.birdUserPhotos==='object') birdUserPhotos=state.birdUserPhotos;
+    if(Array.isArray(state.checklistItems)) checklistItems=state.checklistItems;
+    if(state.checklistChecks && typeof state.checklistChecks==='object') checklistChecks=state.checklistChecks;
+    if(Array.isArray(state.itineraryItems)) itineraryItems=state.itineraryItems;
+    persistFullStateLocal(state);
+    renderAllScreens();
   } finally {
-    firebaseRemoteApplying = false;
+    syncApplyingRemote=false;
   }
 }
-function firebaseScheduleRender(){
-  clearTimeout(firebaseRenderTimer);
-  firebaseRenderTimer=setTimeout(()=>{
-    try{
-      renderItinerary(); renderSpots(); renderVisitRate(); renderBirds(); renderChecklist(); renderReservations(); renderMemos();
-      setSyncStatus('Firebase同期済み');
-    }catch(e){console.warn('Firebase render skipped', e);}
-  },250);
+function renderAllScreens(){
+  try{ updateCountdown(); }catch(e){}
+  try{ renderItinerary(); }catch(e){console.warn('renderItinerary failed',e)}
+  try{ renderSpots(); }catch(e){console.warn('renderSpots failed',e)}
+  try{ renderVisitRate(); }catch(e){}
+  try{ renderBirds(); }catch(e){console.warn('renderBirds failed',e)}
+  try{ renderChecklist(); }catch(e){console.warn('renderChecklist failed',e)}
+  try{ renderReservations(); }catch(e){}
+  try{ renderMemos(); }catch(e){}
 }
-async function firebaseSaveSection(key, value){
-  if(!FIREBASE_SECTION_KEYS.has(key)) return;
+function scheduleCloudSave(reason='change'){
+  if(syncApplyingRemote) return;
+  syncPending=true;
+  if(!syncReady || !syncDocRef){
+    setSyncStatus('ローカル保存中', 'sync-local');
+    return;
+  }
+  clearTimeout(syncSaveTimer);
+  setSyncStatus('保存予約中', 'sync-saving');
+  syncSaveTimer=setTimeout(()=>saveCloudNow(reason), 450);
+}
+async function saveCloudNow(reason='manual'){
+  if(syncApplyingRemote || !syncReady || !syncDocRef) return;
+  const api=window.FirebaseSyncAPI;
+  if(!api){ setSyncStatus('Firebase未接続', 'sync-error'); return; }
+  const payload=getFullState();
+  const now=Date.now();
+  syncPending=false;
+  setSyncStatus('Firestore保存中', 'sync-saving');
+  console.log('[OGASAWARA SYNC] SAVE START', reason, payload);
   try{
-    setSyncStatus('Firebase同期中…');
-    await setDoc(doc(firestoreDb, FIREBASE_ROOT, FIREBASE_DOC, 'sections', key), {
-      value,
-      updatedAt: serverTimestamp(),
-      clientId: FIREBASE_CLIENT_ID
+    await api.setDoc(syncDocRef, {
+      schema:'ogasawara2026-v15',
+      updatedAt: api.serverTimestamp(),
+      updatedAtMs: now,
+      updatedBy: syncDeviceId,
+      state: payload
     }, {merge:true});
-    await setDoc(doc(firestoreDb, FIREBASE_ROOT, FIREBASE_DOC), {
-      updatedAt: serverTimestamp(),
-      clientId: FIREBASE_CLIENT_ID,
-      appVersion: 'v14-rebuild',
-      note: 'ogasawara2026 shared state root'
-    }, {merge:true});
-    setSyncStatus('Firebase同期済み');
-  }catch(e){
-    console.error('Firebase save failed:', key, e);
-    setSyncStatus('Firebase同期失敗・ローカル保存中');
+    syncLastPushedAt=now;
+    setSyncStatus('Firebase同期済み', 'sync-ok');
+    console.log('[OGASAWARA SYNC] SAVE SUCCESS', now);
+  }catch(err){
+    console.error('[OGASAWARA SYNC] SAVE ERROR', err);
+    setSyncStatus('同期失敗: '+(err?.code||err?.message||'error'), 'sync-error');
+    syncPending=true;
   }
 }
-async function firebaseBootstrapAll(){
-  for(const key of FIREBASE_SECTION_KEYS){
-    await firebaseSaveSection(key, firebaseSectionValue(key));
+async function initializeFirebaseSync(){
+  const api=window.FirebaseSyncAPI;
+  if(!api){
+    setSyncStatus('Firebase読込待ち', 'sync-local');
+    return false;
   }
-}
-function initFirebaseSync(){
   try{
-    setSyncStatus('Firebase接続中…');
-    const sectionsRef = collection(firestoreDb, FIREBASE_ROOT, FIREBASE_DOC, 'sections');
-    onSnapshot(sectionsRef, snap=>{
-      if(!firebaseInitialSnapshotSeen){
-        firebaseInitialSnapshotSeen = true;
-        if(snap.empty){
-          firebaseBootstrapAll().then(()=>setSyncStatus('初期データ同期済み'));
-          return;
-        }
+    syncDocRef=api.doc(api.db, 'ogasawara2026', 'shared');
+    setSyncStatus('Firebase接続中', 'sync-saving');
+    const snap=await api.getDoc(syncDocRef);
+    if(snap.exists()){
+      const data=snap.data();
+      if(data?.state){
+        console.log('[OGASAWARA SYNC] INITIAL REMOTE APPLY', data.updatedAtMs, data.updatedBy);
+        applyFullState(data.state);
       }
-      if(snap.empty) return;
-      snap.docChanges().forEach(change=>{
-        if(change.type==='removed') return;
-        const data=change.doc.data()||{};
-        firebaseApplySection(change.doc.id, data.value);
-      });
-      firebaseScheduleRender();
+    }else{
+      console.log('[OGASAWARA SYNC] NO REMOTE STATE, BOOTSTRAP LOCAL');
+    }
+    syncReady=true;
+    api.onSnapshot(syncDocRef, snap=>{
+      if(!snap.exists()) return;
+      const data=snap.data();
+      if(!data?.state) return;
+      if(data.updatedBy===syncDeviceId) return;
+      console.log('[OGASAWARA SYNC] REMOTE RECEIVED', data.updatedAtMs, data.updatedBy);
+      applyFullState(data.state);
+      setSyncStatus('他端末の更新を反映', 'sync-ok');
     }, err=>{
-      console.error('Firebase listen failed:', err);
-      setSyncStatus('Firebase接続エラー');
+      console.error('[OGASAWARA SYNC] SNAPSHOT ERROR', err);
+      setSyncStatus('受信失敗: '+(err?.code||err?.message||'error'), 'sync-error');
     });
-    window.addEventListener('online',()=>firebaseBootstrapAll().catch(()=>{}));
-  }catch(e){
-    console.error('Firebase init failed:', e);
-    setSyncStatus('Firebase初期化エラー');
+    if(!snap.exists() || syncPending){ await saveCloudNow('initial/bootstrap'); }
+    else setSyncStatus('Firebase同期済み', 'sync-ok');
+    return true;
+  }catch(err){
+    console.error('[OGASAWARA SYNC] INIT ERROR', err);
+    setSyncStatus('Firebase接続失敗: '+(err?.code||err?.message||'error'), 'sync-error');
+    return false;
   }
 }
-function setSyncStatus(text){
-  const el = document.getElementById('syncStatus');
-  if(el) el.textContent = text;
-}
+window.addEventListener('online',()=>{ setSyncStatus('オンライン復帰', 'sync-saving'); saveCloudNow('online'); });
+window.addEventListener('firebase-sync-ready',()=>initializeFirebaseSync());
+setTimeout(()=>initializeFirebaseSync(), 1200);
 
 function switchTab(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===id));document.querySelectorAll('.tabbar button').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));scrollTo({top:0,behavior:'smooth'});}
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));document.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>switchTab(b.dataset.jump));

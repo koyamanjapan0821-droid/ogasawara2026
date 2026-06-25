@@ -1,23 +1,39 @@
-# 小笠原2026 V13 icon + telephone
+# 小笠原2026 PWA V15 Firebase正式版
 
-## 変更内容
-- `icon-512.png` をPWAアイコンとして登録
-- iPhone用 `apple-touch-icon` を追加
-- 予約情報に電話番号と `tel:` 発信リンクを追加
-- cache versionをV13へ更新
-
-## アップロード対象
-GitHub Pages のリポジトリ直下へ、このZIP内の全ファイルを上書きアップロードしてください。
-
-
-## V13.1
-- 南島ツアーを「マリンガイド小笠原」に更新
-- TEL 04998-2-3707 の電話ボタンを追加
-
-
-## V14 Rebuild Firebase同期版
-- Firestore: `ogasawara2026/shared/sections/*` に保存
+## 主な変更
+- Firebase Firestore同期を正式実装
+- 保存処理を `store.set()` 経由で共通化
+- PC → スマホ / スマホ → PC の双方向同期を想定
+- `ogasawara2026/shared` ドキュメントに `state` として保存
+- 右下に同期ステータス表示を追加
+  - Firebase同期済み
+  - Firestore保存中
+  - 同期失敗
+  - ローカル保存中
 - localStorageはバックアップとして維持
-- 旅程・持ち物・スポット・メモ・鳥・写真データを同期対象化
-- `syncStatus`で同期状況を表示
-- Storageは未使用（Spark無料枠維持）
+- Service WorkerキャッシュをV15化
+- Firebase CDNはService Workerキャッシュ対象外
+
+## 確認手順
+1. GitHub Pagesへアップロード
+2. PCでアプリを開く
+3. 持ち物を1件追加
+4. Firestore `ogasawara2026 > shared` の `state` が更新されることを確認
+5. iPhone Safariで同じURLを開く
+6. PCの追加内容が反映されることを確認
+7. iPhone側で持ち物を1件追加
+8. Firestore更新日時が変わること、PC側へ反映されることを確認
+
+## 注意
+Firestoreルールは動作確認中は以下のままにすること。
+
+```js
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /ogasawara2026/{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
+```

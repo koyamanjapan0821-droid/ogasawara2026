@@ -1,9 +1,9 @@
-const CACHE_NAME = 'ogasawara2026-v14-rebuild-20260625-firebase';
+const CACHE_NAME = 'ogasawara2026-v15-20260625-firebase-official';
 const APP_SHELL = [
   './',
   './index.html',
-  './style.css?v=20260625v14rebuild',
-  './app.js?v=20260625v14rebuild',
+  './style.css?v=20260625v15',
+  './app.js?v=20260625v15',
   './manifest.json',
   './icon-512.png'
 ];
@@ -22,10 +22,12 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
-      return fetch(event.request).then(response => {
+      return fetch(event.request, {cache:'no-store'}).then(response => {
         const copy = response.clone();
         caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy)).catch(()=>{});
         return response;
