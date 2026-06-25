@@ -1,15 +1,27 @@
-# 小笠原2026 V13 icon + telephone
+# 小笠原2026 PWA V14 Firebase同期版
 
 ## 変更内容
-- `icon-512.png` をPWAアイコンとして登録
-- iPhone用 `apple-touch-icon` を追加
-- 予約情報に電話番号と `tel:` 発信リンクを追加
-- cache versionをV13へ更新
+- Firebase Firestore同期を追加
+- localStorageは維持し、表示・編集は従来どおり即時反映
+- localStorageに保存される主要データをFirestoreへ同期
+- 別端末の変更をリアルタイム受信して画面へ反映
+- V13.1のアイコン・電話発信・旅程編集・持ち物編集・鳥写真拡大を維持
 
-## アップロード対象
-GitHub Pages のリポジトリ直下へ、このZIP内の全ファイルを上書きアップロードしてください。
+## 同期対象
+- 旅程
+- 持ち物
+- スポット追加
+- メモ
+- 鳥追加
+- 鳥写真（Firestore保存で検証）
+- 鳥観察済み
+- お気に入り
+- 訪問済み
 
+## Firebase
+- Project ID: ogasawara2026
+- Firestore path: ogasawara2026/shared/state/{localStorageKey}
 
-## V13.1
-- 南島ツアーを「マリンガイド小笠原」に更新
-- TEL 04998-2-3707 の電話ボタンを追加
+## 注意
+現在のFirestoreルールは動作確認優先の開放設定です。
+動作確認後に必要に応じて制限してください。

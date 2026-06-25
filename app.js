@@ -81,21 +81,128 @@ const APP = {
   ]
 };
 const $ = id => document.getElementById(id);
-const store = {get:(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d)), set:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
-let customSpots = store.get('customSpots', []), visited = store.get('visited', {}), favorites = store.get('favorites', {}), checks = store.get('checks', {}), birdChecks = store.get('birdChecks', {}), memos = store.get('memos', []), customBirds = store.get('customBirds', []), birdUserPhotos = store.get('birdUserPhotos', {});
-let checklistItems = store.get('checklistItemsV10', null);
-let checklistChecks = store.get('checklistChecksV10', null);
-if(!Array.isArray(checklistItems)){
-  checklistItems = APP.checklist.map((text,i)=>({id:'base_'+i, text}));
-  store.set('checklistItemsV10', checklistItems);
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAL9Oyl-YcIlg4htRfyXTs1kA1KL5s2OTM",
+  authDomain: "ogasawara2026.firebaseapp.com",
+  projectId: "ogasawara2026",
+  storageBucket: "ogasawara2026.firebasestorage.app",
+  messagingSenderId: "891438401735",
+  appId: "1:891438401735:web:689e6d14b53c97445996e2",
+  measurementId: "G-B1TGCYYPXD"
+};
+const FIREBASE_SYNC_ENABLED = true;
+const FIREBASE_COLLECTION_PATH = ['ogasawara2026','shared','state'];
+const firebaseClientId = (()=>{
+  const key='ogasawaraFirebaseClientId';
+  let id=localStorage.getItem(key);
+  if(!id){id='client_'+Date.now()+'_'+Math.random().toString(36).slice(2,10);localStorage.setItem(key,id);}
+  return id;
+})();
+let firebaseApp=null, firebaseDb=null, firebaseStateCollection=null, firebaseReady=false, firebaseApplying=false, firebaseSnapshotReady=false;
+const firebaseWriteTimers={};
+
+function safeParseJson(raw, fallback){
+  try{return raw==null?fallback:JSON.parse(raw)}catch(e){return fallback}
 }
-if(!checklistChecks || typeof checklistChecks !== 'object'){
-  checklistChecks = {};
-  checklistItems.forEach((item,i)=>{ if(checks[i]) checklistChecks[item.id]=true; });
-  store.set('checklistChecksV10', checklistChecks);
+function firebaseDocSafeKey(key){return String(key).replace(/[^A-Za-z0-9_-]/g,'_');}
+function getFirebaseStateCollection(){
+  if(!firebaseDb) return null;
+  return firebaseDb.collection(FIREBASE_COLLECTION_PATH[0]).doc(FIREBASE_COLLECTION_PATH[1]).collection(FIREBASE_COLLECTION_PATH[2]);
+}
+function syncableLocalStorageKeys(){
+  const deny=new Set(['ogasawaraFirebaseClientId']);
+  const keys=[];
+  for(let i=0;i<localStorage.length;i++){
+    const key=localStorage.key(i);
+    if(key && !deny.has(key)) keys.push(key);
+  }
+  return keys;
+}
+function pushKeyToFirebase(key){
+  if(!FIREBASE_SYNC_ENABLED || !firebaseReady || firebaseApplying || !firebaseStateCollection) return;
+  const raw=localStorage.getItem(key);
+  if(raw==null) return;
+  clearTimeout(firebaseWriteTimers[key]);
+  firebaseWriteTimers[key]=setTimeout(()=>{
+    firebaseStateCollection.doc(firebaseDocSafeKey(key)).set({
+      key,
+      value: raw,
+      updatedAt: Date.now(),
+      updatedBy: firebaseClientId
+    }, {merge:true}).catch(err=>console.warn('Firebase sync failed:', key, err));
+  }, 450);
+}
+async function seedFirebaseFromLocal(){
+  if(!firebaseStateCollection) return;
+  const keys=syncableLocalStorageKeys();
+  await Promise.all(keys.map(key=>firebaseStateCollection.doc(firebaseDocSafeKey(key)).set({
+    key,
+    value: localStorage.getItem(key),
+    updatedAt: Date.now(),
+    updatedBy: firebaseClientId
+  }, {merge:true}).catch(err=>console.warn('Firebase seed failed:', key, err))));
+}
+function applyFirebaseDocsToLocal(docs){
+  firebaseApplying=true;
+  let changed=false;
+  docs.forEach(doc=>{
+    const data=doc.data ? doc.data() : doc;
+    if(!data || !data.key || typeof data.value !== 'string') return;
+    if(localStorage.getItem(data.key)!==data.value){
+      localStorage.setItem(data.key, data.value);
+      changed=true;
+    }
+  });
+  if(changed){
+    reloadAppStateFromLocal();
+  }
+  firebaseApplying=false;
+  return changed;
+}
+async function initFirebaseSync(){
+  if(!FIREBASE_SYNC_ENABLED || !window.firebase || !window.firebase.firestore) return false;
+  try{
+    firebaseApp = window.firebase.apps.length ? window.firebase.app() : window.firebase.initializeApp(firebaseConfig);
+    firebaseDb = window.firebase.firestore();
+    firebaseStateCollection=getFirebaseStateCollection();
+    firebaseReady=true;
+    const snap=await firebaseStateCollection.get();
+    if(snap.empty){
+      await seedFirebaseFromLocal();
+    }else{
+      applyFirebaseDocsToLocal(snap.docs);
+    }
+    firebaseStateCollection.onSnapshot(snap=>{
+      if(!firebaseSnapshotReady){firebaseSnapshotReady=true; return;}
+      const remoteDocs=[];
+      snap.docChanges().forEach(change=>{
+        const data=change.doc.data();
+        if(!data || data.updatedBy===firebaseClientId) return;
+        remoteDocs.push(change.doc);
+      });
+      if(remoteDocs.length && applyFirebaseDocsToLocal(remoteDocs)){
+        renderAll();
+      }
+    }, err=>console.warn('Firebase listener failed:', err));
+    return true;
+  }catch(err){
+    console.warn('Firebase init failed:', err);
+    firebaseReady=false;
+    return false;
+  }
 }
 
-let itineraryItems = store.get('itineraryItemsV11', null);
+const store = {
+  get:(k,d)=>safeParseJson(localStorage.getItem(k), d),
+  set:(k,v)=>{
+    localStorage.setItem(k,JSON.stringify(v));
+    pushKeyToFirebase(k);
+  }
+};
+
+let customSpots, visited, favorites, checks, birdChecks, memos, customBirds, birdUserPhotos;
+let checklistItems, checklistChecks, itineraryItems;
 function cloneDefaultItinerary(){
   return APP.itinerary.map((day,di)=>({
     id:'day_'+di,
@@ -104,10 +211,33 @@ function cloneDefaultItinerary(){
     events:(day.events||[]).map((e,ei)=>({id:'ev_'+di+'_'+ei,time:e[0],title:e[1],memo:e[2]}))
   }));
 }
-if(!Array.isArray(itineraryItems)){
-  itineraryItems = cloneDefaultItinerary();
-  store.set('itineraryItemsV11', itineraryItems);
+function reloadAppStateFromLocal(){
+  customSpots = store.get('customSpots', []);
+  visited = store.get('visited', {});
+  favorites = store.get('favorites', {});
+  checks = store.get('checks', {});
+  birdChecks = store.get('birdChecks', {});
+  memos = store.get('memos', []);
+  customBirds = store.get('customBirds', []);
+  birdUserPhotos = store.get('birdUserPhotos', {});
+  checklistItems = store.get('checklistItemsV10', null);
+  checklistChecks = store.get('checklistChecksV10', null);
+  if(!Array.isArray(checklistItems)){
+    checklistItems = APP.checklist.map((text,i)=>({id:'base_'+i, text}));
+    store.set('checklistItemsV10', checklistItems);
+  }
+  if(!checklistChecks || typeof checklistChecks !== 'object'){
+    checklistChecks = {};
+    checklistItems.forEach((item,i)=>{ if(checks[i]) checklistChecks[item.id]=true; });
+    store.set('checklistChecksV10', checklistChecks);
+  }
+  itineraryItems = store.get('itineraryItemsV11', null);
+  if(!Array.isArray(itineraryItems)){
+    itineraryItems = cloneDefaultItinerary();
+    store.set('itineraryItemsV11', itineraryItems);
+  }
 }
+reloadAppStateFromLocal();
 function saveItinerary(){store.set('itineraryItemsV11', itineraryItems);}
 function switchTab(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===id));document.querySelectorAll('.tabbar button').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));scrollTo({top:0,behavior:'smooth'});}
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));document.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>switchTab(b.dataset.jump));
@@ -622,5 +752,21 @@ const photoViewerDialog=$('photoViewerDialog');
 if(photoViewerDialog) photoViewerDialog.addEventListener('click',e=>{if(e.target===photoViewerDialog) closeBirdPhotoViewer();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape') closeBirdPhotoViewer();});
 
-if('serviceWorker' in navigator){navigator.serviceWorker.register('./service-worker.js').catch(()=>{});}
-updateCountdown();renderItinerary();renderSpots();renderVisitRate();renderBirds();renderChecklist();renderReservations();renderMemos();loadWeather();setInterval(updateCountdown,3600000);
+function renderAll(){
+  updateCountdown();
+  renderItinerary();
+  renderSpots();
+  renderVisitRate();
+  renderBirds();
+  renderChecklist();
+  renderReservations();
+  renderMemos();
+}
+async function bootApp(){
+  if('serviceWorker' in navigator){navigator.serviceWorker.register('./service-worker.js?v=20260625v14').catch(()=>{});}
+  await initFirebaseSync();
+  renderAll();
+  loadWeather();
+  setInterval(updateCountdown,3600000);
+}
+bootApp();
