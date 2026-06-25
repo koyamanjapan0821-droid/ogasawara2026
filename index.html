@@ -11,7 +11,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" sizes="180x180" href="icon-512.png">
   <link rel="apple-touch-icon" href="icon-512.png">
-  <link rel="stylesheet" href="style.css?v=20260625v14">
+  <link rel="stylesheet" href="style.css?v=20260625v14rebuild">
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -21,6 +21,7 @@
           <p class="eyebrow">Ogasawara 2026</p>
           <h1>小笠原2026</h1>
           <p class="subtitle">おじいと赤ちゃん旅のしおり</p>
+          <p id="syncStatus" class="sync-status">Firebase接続準備中</p>
         </div>
         <button id="installBtn" class="pill hidden">ホームに追加</button>
       </div>
@@ -196,9 +197,6 @@
     <button id="mascotPonchan" class="mascot mascot-ponchan" type="button" aria-label="ぽんちゃんキャラ"></button>
   </div>
 
-
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-  <script src="app.js?v=20260625v14"></script>
+  <script type="module" src="app.js?v=20260625v14rebuild"></script>
 </body>
 </html>

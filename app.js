@@ -1,3 +1,30 @@
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js';
+import { getFirestore, doc, setDoc, collection, onSnapshot, serverTimestamp, enableIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: 'AIzaSyAL9Oyl-YcIlg4htRfyXTs1kA1KL5s2OTM',
+  authDomain: 'ogasawara2026.firebaseapp.com',
+  projectId: 'ogasawara2026',
+  storageBucket: 'ogasawara2026.firebasestorage.app',
+  messagingSenderId: '891438401735',
+  appId: '1:891438401735:web:689e6d14b53c97445996e2',
+  measurementId: 'G-B1TGCYYPXD'
+};
+const FIREBASE_CLIENT_ID = (()=>{
+  let id = localStorage.getItem('ogasawaraFirebaseClientId');
+  if(!id){ id = 'client_' + Date.now() + '_' + Math.random().toString(36).slice(2,10); localStorage.setItem('ogasawaraFirebaseClientId', id); }
+  return id;
+})();
+const firebaseApp = initializeApp(firebaseConfig);
+const firestoreDb = getFirestore(firebaseApp);
+enableIndexedDbPersistence(firestoreDb).catch(()=>{});
+const FIREBASE_ROOT = 'ogasawara2026';
+const FIREBASE_DOC = 'shared';
+const FIREBASE_SECTION_KEYS = new Set(['customSpots','visited','favorites','checks','birdChecks','memos','customBirds','birdUserPhotos','checklistItemsV10','checklistChecksV10','itineraryItemsV11']);
+let firebaseRemoteApplying = false;
+let firebaseInitialSnapshotSeen = false;
+let firebaseRenderTimer = null;
+
 const APP = {
   startDate: new Date('2026-08-11T11:00:00+09:00'),
   itinerary: [
@@ -81,128 +108,27 @@ const APP = {
   ]
 };
 const $ = id => document.getElementById(id);
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAL9Oyl-YcIlg4htRfyXTs1kA1KL5s2OTM",
-  authDomain: "ogasawara2026.firebaseapp.com",
-  projectId: "ogasawara2026",
-  storageBucket: "ogasawara2026.firebasestorage.app",
-  messagingSenderId: "891438401735",
-  appId: "1:891438401735:web:689e6d14b53c97445996e2",
-  measurementId: "G-B1TGCYYPXD"
-};
-const FIREBASE_SYNC_ENABLED = true;
-const FIREBASE_COLLECTION_PATH = ['ogasawara2026','shared','state'];
-const firebaseClientId = (()=>{
-  const key='ogasawaraFirebaseClientId';
-  let id=localStorage.getItem(key);
-  if(!id){id='client_'+Date.now()+'_'+Math.random().toString(36).slice(2,10);localStorage.setItem(key,id);}
-  return id;
-})();
-let firebaseApp=null, firebaseDb=null, firebaseStateCollection=null, firebaseReady=false, firebaseApplying=false, firebaseSnapshotReady=false;
-const firebaseWriteTimers={};
-
-function safeParseJson(raw, fallback){
-  try{return raw==null?fallback:JSON.parse(raw)}catch(e){return fallback}
-}
-function firebaseDocSafeKey(key){return String(key).replace(/[^A-Za-z0-9_-]/g,'_');}
-function getFirebaseStateCollection(){
-  if(!firebaseDb) return null;
-  return firebaseDb.collection(FIREBASE_COLLECTION_PATH[0]).doc(FIREBASE_COLLECTION_PATH[1]).collection(FIREBASE_COLLECTION_PATH[2]);
-}
-function syncableLocalStorageKeys(){
-  const deny=new Set(['ogasawaraFirebaseClientId']);
-  const keys=[];
-  for(let i=0;i<localStorage.length;i++){
-    const key=localStorage.key(i);
-    if(key && !deny.has(key)) keys.push(key);
-  }
-  return keys;
-}
-function pushKeyToFirebase(key){
-  if(!FIREBASE_SYNC_ENABLED || !firebaseReady || firebaseApplying || !firebaseStateCollection) return;
-  const raw=localStorage.getItem(key);
-  if(raw==null) return;
-  clearTimeout(firebaseWriteTimers[key]);
-  firebaseWriteTimers[key]=setTimeout(()=>{
-    firebaseStateCollection.doc(firebaseDocSafeKey(key)).set({
-      key,
-      value: raw,
-      updatedAt: Date.now(),
-      updatedBy: firebaseClientId
-    }, {merge:true}).catch(err=>console.warn('Firebase sync failed:', key, err));
-  }, 450);
-}
-async function seedFirebaseFromLocal(){
-  if(!firebaseStateCollection) return;
-  const keys=syncableLocalStorageKeys();
-  await Promise.all(keys.map(key=>firebaseStateCollection.doc(firebaseDocSafeKey(key)).set({
-    key,
-    value: localStorage.getItem(key),
-    updatedAt: Date.now(),
-    updatedBy: firebaseClientId
-  }, {merge:true}).catch(err=>console.warn('Firebase seed failed:', key, err))));
-}
-function applyFirebaseDocsToLocal(docs){
-  firebaseApplying=true;
-  let changed=false;
-  docs.forEach(doc=>{
-    const data=doc.data ? doc.data() : doc;
-    if(!data || !data.key || typeof data.value !== 'string') return;
-    if(localStorage.getItem(data.key)!==data.value){
-      localStorage.setItem(data.key, data.value);
-      changed=true;
-    }
-  });
-  if(changed){
-    reloadAppStateFromLocal();
-  }
-  firebaseApplying=false;
-  return changed;
-}
-async function initFirebaseSync(){
-  if(!FIREBASE_SYNC_ENABLED || !window.firebase || !window.firebase.firestore) return false;
-  try{
-    firebaseApp = window.firebase.apps.length ? window.firebase.app() : window.firebase.initializeApp(firebaseConfig);
-    firebaseDb = window.firebase.firestore();
-    firebaseStateCollection=getFirebaseStateCollection();
-    firebaseReady=true;
-    const snap=await firebaseStateCollection.get();
-    if(snap.empty){
-      await seedFirebaseFromLocal();
-    }else{
-      applyFirebaseDocsToLocal(snap.docs);
-    }
-    firebaseStateCollection.onSnapshot(snap=>{
-      if(!firebaseSnapshotReady){firebaseSnapshotReady=true; return;}
-      const remoteDocs=[];
-      snap.docChanges().forEach(change=>{
-        const data=change.doc.data();
-        if(!data || data.updatedBy===firebaseClientId) return;
-        remoteDocs.push(change.doc);
-      });
-      if(remoteDocs.length && applyFirebaseDocsToLocal(remoteDocs)){
-        renderAll();
-      }
-    }, err=>console.warn('Firebase listener failed:', err));
-    return true;
-  }catch(err){
-    console.warn('Firebase init failed:', err);
-    firebaseReady=false;
-    return false;
-  }
-}
-
 const store = {
-  get:(k,d)=>safeParseJson(localStorage.getItem(k), d),
+  get:(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d)),
   set:(k,v)=>{
     localStorage.setItem(k,JSON.stringify(v));
-    pushKeyToFirebase(k);
+    if(!firebaseRemoteApplying && FIREBASE_SECTION_KEYS.has(k) && typeof firebaseSaveSection === 'function') firebaseSaveSection(k,v);
   }
 };
+let customSpots = store.get('customSpots', []), visited = store.get('visited', {}), favorites = store.get('favorites', {}), checks = store.get('checks', {}), birdChecks = store.get('birdChecks', {}), memos = store.get('memos', []), customBirds = store.get('customBirds', []), birdUserPhotos = store.get('birdUserPhotos', {});
+let checklistItems = store.get('checklistItemsV10', null);
+let checklistChecks = store.get('checklistChecksV10', null);
+if(!Array.isArray(checklistItems)){
+  checklistItems = APP.checklist.map((text,i)=>({id:'base_'+i, text}));
+  store.set('checklistItemsV10', checklistItems);
+}
+if(!checklistChecks || typeof checklistChecks !== 'object'){
+  checklistChecks = {};
+  checklistItems.forEach((item,i)=>{ if(checks[i]) checklistChecks[item.id]=true; });
+  store.set('checklistChecksV10', checklistChecks);
+}
 
-let customSpots, visited, favorites, checks, birdChecks, memos, customBirds, birdUserPhotos;
-let checklistItems, checklistChecks, itineraryItems;
+let itineraryItems = store.get('itineraryItemsV11', null);
 function cloneDefaultItinerary(){
   return APP.itinerary.map((day,di)=>({
     id:'day_'+di,
@@ -211,34 +137,109 @@ function cloneDefaultItinerary(){
     events:(day.events||[]).map((e,ei)=>({id:'ev_'+di+'_'+ei,time:e[0],title:e[1],memo:e[2]}))
   }));
 }
-function reloadAppStateFromLocal(){
-  customSpots = store.get('customSpots', []);
-  visited = store.get('visited', {});
-  favorites = store.get('favorites', {});
-  checks = store.get('checks', {});
-  birdChecks = store.get('birdChecks', {});
-  memos = store.get('memos', []);
-  customBirds = store.get('customBirds', []);
-  birdUserPhotos = store.get('birdUserPhotos', {});
-  checklistItems = store.get('checklistItemsV10', null);
-  checklistChecks = store.get('checklistChecksV10', null);
-  if(!Array.isArray(checklistItems)){
-    checklistItems = APP.checklist.map((text,i)=>({id:'base_'+i, text}));
-    store.set('checklistItemsV10', checklistItems);
-  }
-  if(!checklistChecks || typeof checklistChecks !== 'object'){
-    checklistChecks = {};
-    checklistItems.forEach((item,i)=>{ if(checks[i]) checklistChecks[item.id]=true; });
-    store.set('checklistChecksV10', checklistChecks);
-  }
-  itineraryItems = store.get('itineraryItemsV11', null);
-  if(!Array.isArray(itineraryItems)){
-    itineraryItems = cloneDefaultItinerary();
-    store.set('itineraryItemsV11', itineraryItems);
+if(!Array.isArray(itineraryItems)){
+  itineraryItems = cloneDefaultItinerary();
+  store.set('itineraryItemsV11', itineraryItems);
+}
+function saveItinerary(){store.set('itineraryItemsV11', itineraryItems);}
+
+function firebaseSectionValue(key){
+  return {
+    customSpots, visited, favorites, checks, birdChecks, memos, customBirds, birdUserPhotos,
+    checklistItemsV10: checklistItems,
+    checklistChecksV10: checklistChecks,
+    itineraryItemsV11: itineraryItems
+  }[key];
+}
+function firebaseApplySection(key, value){
+  if(!FIREBASE_SECTION_KEYS.has(key)) return;
+  firebaseRemoteApplying = true;
+  try{
+    localStorage.setItem(key, JSON.stringify(value));
+    if(key==='customSpots') customSpots = Array.isArray(value) ? value : [];
+    if(key==='visited') visited = value && typeof value==='object' ? value : {};
+    if(key==='favorites') favorites = value && typeof value==='object' ? value : {};
+    if(key==='checks') checks = value && typeof value==='object' ? value : {};
+    if(key==='birdChecks') birdChecks = value && typeof value==='object' ? value : {};
+    if(key==='memos') memos = Array.isArray(value) ? value : [];
+    if(key==='customBirds') customBirds = Array.isArray(value) ? value : [];
+    if(key==='birdUserPhotos') birdUserPhotos = value && typeof value==='object' ? value : {};
+    if(key==='checklistItemsV10') checklistItems = Array.isArray(value) ? value : checklistItems;
+    if(key==='checklistChecksV10') checklistChecks = value && typeof value==='object' ? value : {};
+    if(key==='itineraryItemsV11') itineraryItems = Array.isArray(value) ? value : itineraryItems;
+  } finally {
+    firebaseRemoteApplying = false;
   }
 }
-reloadAppStateFromLocal();
-function saveItinerary(){store.set('itineraryItemsV11', itineraryItems);}
+function firebaseScheduleRender(){
+  clearTimeout(firebaseRenderTimer);
+  firebaseRenderTimer=setTimeout(()=>{
+    try{
+      renderItinerary(); renderSpots(); renderVisitRate(); renderBirds(); renderChecklist(); renderReservations(); renderMemos();
+      setSyncStatus('Firebase同期済み');
+    }catch(e){console.warn('Firebase render skipped', e);}
+  },250);
+}
+async function firebaseSaveSection(key, value){
+  if(!FIREBASE_SECTION_KEYS.has(key)) return;
+  try{
+    setSyncStatus('Firebase同期中…');
+    await setDoc(doc(firestoreDb, FIREBASE_ROOT, FIREBASE_DOC, 'sections', key), {
+      value,
+      updatedAt: serverTimestamp(),
+      clientId: FIREBASE_CLIENT_ID
+    }, {merge:true});
+    await setDoc(doc(firestoreDb, FIREBASE_ROOT, FIREBASE_DOC), {
+      updatedAt: serverTimestamp(),
+      clientId: FIREBASE_CLIENT_ID,
+      appVersion: 'v14-rebuild',
+      note: 'ogasawara2026 shared state root'
+    }, {merge:true});
+    setSyncStatus('Firebase同期済み');
+  }catch(e){
+    console.error('Firebase save failed:', key, e);
+    setSyncStatus('Firebase同期失敗・ローカル保存中');
+  }
+}
+async function firebaseBootstrapAll(){
+  for(const key of FIREBASE_SECTION_KEYS){
+    await firebaseSaveSection(key, firebaseSectionValue(key));
+  }
+}
+function initFirebaseSync(){
+  try{
+    setSyncStatus('Firebase接続中…');
+    const sectionsRef = collection(firestoreDb, FIREBASE_ROOT, FIREBASE_DOC, 'sections');
+    onSnapshot(sectionsRef, snap=>{
+      if(!firebaseInitialSnapshotSeen){
+        firebaseInitialSnapshotSeen = true;
+        if(snap.empty){
+          firebaseBootstrapAll().then(()=>setSyncStatus('初期データ同期済み'));
+          return;
+        }
+      }
+      if(snap.empty) return;
+      snap.docChanges().forEach(change=>{
+        if(change.type==='removed') return;
+        const data=change.doc.data()||{};
+        firebaseApplySection(change.doc.id, data.value);
+      });
+      firebaseScheduleRender();
+    }, err=>{
+      console.error('Firebase listen failed:', err);
+      setSyncStatus('Firebase接続エラー');
+    });
+    window.addEventListener('online',()=>firebaseBootstrapAll().catch(()=>{}));
+  }catch(e){
+    console.error('Firebase init failed:', e);
+    setSyncStatus('Firebase初期化エラー');
+  }
+}
+function setSyncStatus(text){
+  const el = document.getElementById('syncStatus');
+  if(el) el.textContent = text;
+}
+
 function switchTab(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===id));document.querySelectorAll('.tabbar button').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));scrollTo({top:0,behavior:'smooth'});}
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));document.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>switchTab(b.dataset.jump));
 function updateCountdown(){const now=new Date();const diff=APP.startDate-now;if(diff<=0){$('countdown').textContent='出発済';return}const d=Math.ceil(diff/86400000);$('countdown').textContent=`あと${d}日`;}
@@ -752,21 +753,5 @@ const photoViewerDialog=$('photoViewerDialog');
 if(photoViewerDialog) photoViewerDialog.addEventListener('click',e=>{if(e.target===photoViewerDialog) closeBirdPhotoViewer();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape') closeBirdPhotoViewer();});
 
-function renderAll(){
-  updateCountdown();
-  renderItinerary();
-  renderSpots();
-  renderVisitRate();
-  renderBirds();
-  renderChecklist();
-  renderReservations();
-  renderMemos();
-}
-async function bootApp(){
-  if('serviceWorker' in navigator){navigator.serviceWorker.register('./service-worker.js?v=20260625v14').catch(()=>{});}
-  await initFirebaseSync();
-  renderAll();
-  loadWeather();
-  setInterval(updateCountdown,3600000);
-}
-bootApp();
+if('serviceWorker' in navigator){navigator.serviceWorker.register('./service-worker.js').catch(()=>{});}
+updateCountdown();renderItinerary();renderSpots();renderVisitRate();renderBirds();renderChecklist();renderReservations();renderMemos();loadWeather();setInterval(updateCountdown,3600000);

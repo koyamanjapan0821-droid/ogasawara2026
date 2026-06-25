@@ -89,3 +89,8 @@
 
 /* V13: reservation phone buttons */
 .reservation-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.phone-btn{background:#eefaf2;color:#14833b}.phone-btn small{display:inline-block;margin-left:8px;color:inherit;opacity:.78;font-weight:800}
+
+
+/* V14 Rebuild: Firebase sync status */
+.sync-status{display:inline-block;margin-top:8px;padding:6px 10px;border-radius:999px;background:rgba(0,122,255,.10);color:#0066cc;font-size:12px;font-weight:800;}
+@media(prefers-color-scheme:dark){.sync-status{background:rgba(0,122,255,.18);color:#8ec5ff}}
