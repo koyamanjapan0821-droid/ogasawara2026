@@ -544,6 +544,43 @@ let mascotRandomTimer=null;
 let mascotSuppressClickUntil=0;
 const mascotPositionStoreKey='mascotPositionsV4';
 
+
+/* V15.1: mascot tap sound effects */
+const mascotSoundConfig={
+  normal:['assets/sounds/01.mp3','assets/sounds/02.mp3'],
+  rare:['assets/sounds/rare01.mp3','assets/sounds/rare02.mp3','assets/sounds/rare03.mp3','assets/sounds/rare04.mp3']
+};
+let mascotCurrentAudio=null;
+let mascotLastSound={normal:null,rare:null};
+function pickMascotSound(kind='normal'){
+  const list=mascotSoundConfig[kind]||mascotSoundConfig.normal;
+  if(!list.length) return '';
+  const pool=list.length>1 ? list.filter(src=>src!==mascotLastSound[kind]) : list;
+  const src=pool[Math.floor(Math.random()*pool.length)] || list[0];
+  mascotLastSound[kind]=src;
+  return src;
+}
+function playMascotSound(kind='normal'){
+  const src=pickMascotSound(kind);
+  if(!src) return;
+  try{
+    if(mascotCurrentAudio){
+      mascotCurrentAudio.pause();
+      mascotCurrentAudio.currentTime=0;
+    }
+    const audio=new Audio(src);
+    audio.preload='auto';
+    audio.volume=kind==='rare' ? 0.45 : 0.35;
+    mascotCurrentAudio=audio;
+    const playPromise=audio.play();
+    if(playPromise && typeof playPromise.catch==='function'){
+      playPromise.catch(err=>console.warn('[MASCOT SOUND] play skipped', err));
+    }
+  }catch(err){
+    console.warn('[MASCOT SOUND] error', err);
+  }
+}
+
 function pickMascot(who){const list=mascotAssets[who];return list[Math.floor(Math.random()*list.length)];}
 function mascotBounds(el){
   const margin=8;
@@ -632,6 +669,7 @@ function changeMascotAfterTalk(id, isRare=false){
 }
 function showMascotLine(id){
   if(Date.now()<mascotSuppressClickUntil) return;
+  playMascotSound('normal');
   const el=$(id); if(!el) return;
   const bubble=$('mascotBubble');
   const item=mascotState[id] || pickMascot(id==='mascotTomokichi'?'tomokichi':'ponchan');
@@ -710,6 +748,7 @@ function ensureRareMascotElement(){
 }
 function showRareMascotLine(){
   const el=$('mascotRareKohtaro'); if(!el || el.classList.contains('hidden')) return;
+  playMascotSound('rare');
   const bubble=$('mascotBubble');
   bubble.textContent=rareMascot.lines[Math.floor(Math.random()*rareMascot.lines.length)];
   const r=el.getBoundingClientRect();

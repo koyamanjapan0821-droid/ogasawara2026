@@ -85,11 +85,3 @@
 #itineraryEventForm .label{display:block;margin:10px 0 4px;}
 #editEventMemo{min-height:96px;}
 @media(max-width:420px){.itinerary-event{grid-template-columns:24px 54px 1fr}.drag-handle{font-size:14px}}
-
-
-/* V13: reservation phone buttons */
-.reservation-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.phone-btn{background:#eefaf2;color:#14833b}.phone-btn small{display:inline-block;margin-left:8px;color:inherit;opacity:.78;font-weight:800}
-
-/* V15: Firebase sync status */
-.sync-status-badge{position:fixed;left:14px;bottom:92px;z-index:20;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:900;box-shadow:0 10px 26px rgba(31,41,55,.18);border:1px solid rgba(255,255,255,.75);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);max-width:72vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sync-ok{background:#e7f8ee;color:#14833b}.sync-saving{background:#fff8dc;color:#946200}.sync-error{background:#fff0f0;color:#d70015}.sync-local{background:#eef6ff;color:#0066cc}
-@media(max-width:420px){.sync-status-badge{bottom:88px;left:10px;font-size:11px;padding:7px 10px}}

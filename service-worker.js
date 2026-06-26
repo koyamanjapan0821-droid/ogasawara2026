@@ -1,9 +1,9 @@
-const CACHE_NAME = 'ogasawara2026-v15-20260625-firebase-official';
+const CACHE_NAME = 'ogasawara2026-v15-1-20260625-sound';
 const APP_SHELL = [
   './',
   './index.html',
-  './style.css?v=20260625v15',
-  './app.js?v=20260625v15',
+  './style.css?v=20260625v151',
+  './app.js?v=20260625v151',
   './manifest.json',
   './icon-512.png'
 ];
